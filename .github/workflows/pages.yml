@@ -1,0 +1,52 @@
+name: 部署到 GitHub Pages
+
+# 推送到 main 即发布。数据同步工作流（sync.yml）每 12 小时也会推 main，
+# 所以站点内容会跟着数据自动更新，不需要单独的发布节奏。
+#
+# 一次性手动步骤（工作流本身无法代劳）：
+#   仓库 Settings → Pages → Source 选「Deploy from a branch」→ 分支选 gh-pages / (root)。
+# 站点地址：https://<owner>.github.io/<repo>/ —— 项目在子路径下，
+# 所以构建时必须带 NEXT_BASE_PATH（next.config.ts 与 src/lib/asset.ts 读它补全资源前缀）。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: 构建（子路径前缀 = 仓库名）
+        env:
+          NEXT_BASE_PATH: /${{ github.event.repository.name }}
+          NEXT_DIST_DIR: .next-build
+        run: npm run build
+
+      - name: 发布到 gh-pages 分支
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./.next-build
+          publish_branch: gh-pages
+          # 全站 3000+ 页每 12 小时随数据重发一次，保留历史只会把分支撑爆
+          force_orphan: true
+          commit_message: deploy: ${{ github.sha }}
