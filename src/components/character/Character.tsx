@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { TIER_SCALE, type CharacterVisual } from '@/lib/derive';
-import { profileFor } from '@/data/vendor-registry';
+import { profileFor, vendorName } from '@/data/vendor-registry';
 import { readableOnDark } from '@/lib/color';
-import { getDict, type Lang } from '@/lib/i18n';
+import { getDict, langLink, type Lang } from '@/lib/i18n';
 import { VendorCrest } from './VendorCrest';
 import { StateOverlays } from './StateOverlays';
 import { anchorsFor } from '@/lib/sprite-manifest';
@@ -105,7 +105,7 @@ export function Character({
 
   const Wrapper = linked ? Link : 'div';
   const wrapperProps = linked
-    ? { href: `/model/${visual.slug}/` as const, title }
+    ? { href: langLink(lang, `/model/${visual.slug}/`), title }
     : { title };
 
   return (
@@ -179,7 +179,7 @@ export function Character({
               motif={profile.motif}
               accentColor={profile.accentColor}
               size={12}
-              title={profile.nameZh}
+              title={vendorName(profile, lang)}
             />
             {visual.rank != null ? `#${visual.rank}` : dict.unknown.notRanked}
           </span>

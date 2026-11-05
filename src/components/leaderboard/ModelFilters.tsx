@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { VendorCrest } from '@/components/character/VendorCrest';
-import { DEFAULT_LANG, getDict } from '@/lib/i18n';
+import { getDict, type Lang } from '@/lib/i18n';
 import { KINDS, type ModelKind } from '@/lib/kind';
 import type { FilterState, Kind, Region, Weights } from './filters';
 import { EMPTY_FILTER, isFilterActive } from './filters';
@@ -20,6 +20,7 @@ interface ModelFiltersProps {
   onChange: (next: FilterState) => void;
   vendors: LeanVendor[];
   models: LeanModel[];
+  lang: Lang;
   /** 当前筛选后剩多少个模型，显示在清空按钮旁 */
   matched?: number;
 }
@@ -82,9 +83,8 @@ export function Chip({
 const INPUT_CLASS =
   'border-2 border-[var(--color-ink)] bg-[rgb(0_0_0/0.35)] px-2 py-0.5 text-[13px] leading-5 text-[var(--color-parchment)] outline-none focus:border-[var(--color-gold)]';
 
-const dict = getDict(DEFAULT_LANG);
-
-export function ModelFilters({ value, onChange, vendors, models, matched }: ModelFiltersProps) {
+export function ModelFilters({ value, onChange, vendors, models, lang, matched }: ModelFiltersProps) {
+  const dict = getDict(lang);
   // 类型按钮只列快照里真有的类型，并带上数量：读者一眼知道「视频生成」是 5 个还是 50 个。
   // 数量按全库算而不按当前筛选算——否则点了「国内」之后「语音 0」会闪来闪去。
   // 只有「含已退役」这一项会影响它：退役模型默认不在任何名单里，数进去会对不上。
@@ -99,7 +99,7 @@ export function ModelFilters({ value, onChange, vendors, models, matched }: Mode
     }
     const present = KINDS.filter((k) => (count.get(k) ?? 0) > 0);
     return [
-      { id: 'all' as Kind, text: '全部' },
+      { id: 'all' as Kind, text: dict.ui.filters.all },
       // 「多模态」排在六个具体类型前面：它是读者最常用的问法，而且是这几类的并集
       ...(multimodal > 0
         ? [{ id: 'multimodal' as Kind, text: `${dict.kind.multimodal} ${multimodal}`, title: dict.kind.multimodalHint }]
@@ -110,7 +110,7 @@ export function ModelFilters({ value, onChange, vendors, models, matched }: Mode
         title: dict.kind.hint[k],
       })),
     ];
-  }, [models, value.retired]);
+  }, [models, value.retired, dict]);
 
   const years = useMemo(() => {
     const set = new Set<number>();
@@ -121,12 +121,14 @@ export function ModelFilters({ value, onChange, vendors, models, matched }: Mode
   const vendorGroups = useMemo(() => {
     const used = new Set(models.map((m) => m.vendor));
     const list = vendors.filter((v) => used.has(v.id));
-    const sortByName = (a: LeanVendor, b: LeanVendor) => a.nameZh.localeCompare(b.nameZh, 'zh-Hans-CN');
+    // 按展示名排：zh 用中文名（拼音序），其余语言用国际通用名
+    const nameOf = (v: LeanVendor) => (lang === 'zh' ? v.nameZh : v.nameEn);
+    const sortByName = (a: LeanVendor, b: LeanVendor) => nameOf(a).localeCompare(nameOf(b), 'zh-Hans-CN');
     return [
-      { label: '国内', items: list.filter((v) => v.continent === 'east').sort(sortByName) },
-      { label: '国外', items: list.filter((v) => v.continent === 'west').sort(sortByName) },
+      { label: dict.continent.east, items: list.filter((v) => v.continent === 'east').sort(sortByName) },
+      { label: dict.continent.west, items: list.filter((v) => v.continent === 'west').sort(sortByName) },
     ];
-  }, [vendors, models]);
+  }, [vendors, models, lang, dict]);
 
   const set = <K extends keyof FilterState>(k: K, v: FilterState[K]) => onChange({ ...value, [k]: v });
   const toggleVendor = (id: string) =>
@@ -140,35 +142,35 @@ export function ModelFilters({ value, onChange, vendors, models, matched }: Mode
   return (
     <div className="pixel-panel-dark flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2">
       <label className="flex items-center gap-1.5">
-        <span className="text-[13px] text-[var(--color-ghost)]">搜索</span>
+        <span className="text-[13px] text-[var(--color-ghost)]">{dict.ui.filters.search}</span>
         <input
           type="search"
           value={value.q}
           onChange={(e) => set('q', e.target.value)}
-          placeholder="模型名或厂商"
-          aria-label="按模型名或厂商名搜索"
+          placeholder={dict.ui.filters.searchPlaceholder}
+          aria-label={dict.ui.filters.searchAria}
           className={`${INPUT_CLASS} w-36 sm:w-44`}
         />
       </label>
 
       <Segment<Region>
-        label="地区"
+        label={dict.ui.filters.region}
         value={value.region}
         options={[
-          { id: 'all', text: '全部' },
-          { id: 'east', text: '国内' },
-          { id: 'west', text: '国外' },
+          { id: 'all', text: dict.ui.filters.all },
+          { id: 'east', text: dict.continent.east },
+          { id: 'west', text: dict.continent.west },
         ]}
         onChange={(v) => set('region', v)}
       />
 
       <Segment<Weights>
-        label="开放"
+        label={dict.ui.filters.weights}
         value={value.weights}
         options={[
-          { id: 'all', text: '全部' },
-          { id: 'open', text: '开源' },
-          { id: 'closed', text: '闭源' },
+          { id: 'all', text: dict.ui.filters.all },
+          { id: 'open', text: dict.ui.filters.open },
+          { id: 'closed', text: dict.ui.filters.closed },
         ]}
         onChange={(v) => set('weights', v)}
       />
@@ -181,14 +183,14 @@ export function ModelFilters({ value, onChange, vendors, models, matched }: Mode
       />
 
       <label className="flex items-center gap-1.5">
-        <span className="text-[13px] text-[var(--color-ghost)]">年份</span>
+        <span className="text-[13px] text-[var(--color-ghost)]">{dict.ui.filters.year}</span>
         <select
           value={value.year ?? ''}
           onChange={(e) => set('year', e.target.value ? Number(e.target.value) : null)}
           className={INPUT_CLASS}
-          aria-label="按发布年份筛选"
+          aria-label={dict.ui.filters.yearAria}
         >
-          <option value="">不限</option>
+          <option value="">{dict.ui.filters.yearAny}</option>
           {years.map((y) => (
             <option key={y} value={y}>
               {y}
@@ -206,7 +208,8 @@ export function ModelFilters({ value, onChange, vendors, models, matched }: Mode
             color: value.vendors.length ? 'var(--color-ink)' : 'var(--color-parchment)',
           }}
         >
-          厂商{value.vendors.length ? `（${value.vendors.length}）` : ''}
+          {dict.ui.filters.vendor}
+          {value.vendors.length ? dict.ui.filters.vendorCount(value.vendors.length) : ''}
           <span aria-hidden className="font-pixel text-[12px]">
             ▼
           </span>
@@ -229,7 +232,7 @@ export function ModelFilters({ value, onChange, vendors, models, matched }: Mode
                         />
                         <VendorCrest motif={v.motif} accentColor={v.accent} size={12} />
                         <span className="truncate" style={{ color: on ? 'var(--color-gold)' : undefined }}>
-                          {v.nameZh}
+                          {lang === 'zh' ? v.nameZh : v.nameEn}
                         </span>
                       </label>
                     </li>
@@ -244,7 +247,7 @@ export function ModelFilters({ value, onChange, vendors, models, matched }: Mode
               onClick={() => set('vendors', [])}
               className="mt-1 text-[13px] text-[var(--color-ghost)] hover:text-[var(--color-gold)]"
             >
-              清空厂商
+              {dict.ui.filters.clearVendors}
             </button>
           )}
         </div>
@@ -257,18 +260,18 @@ export function ModelFilters({ value, onChange, vendors, models, matched }: Mode
           onChange={(e) => set('retired', e.target.checked)}
           className="accent-[var(--color-gold)]"
         />
-        含已退役
+        {dict.ui.filters.includeRetired}
       </label>
 
       <span className="ml-auto flex items-center gap-3 text-[13px] text-[var(--color-ghost)]">
-        {matched != null && <span>{matched} 个模型符合</span>}
+        {matched != null && <span>{dict.ui.filters.matched(matched)}</span>}
         {active && (
           <button
             type="button"
             onClick={() => onChange(EMPTY_FILTER)}
             className="text-[var(--color-parchment)] underline decoration-dotted hover:text-[var(--color-gold)]"
           >
-            清空筛选
+            {dict.ui.filters.clear}
           </button>
         )}
       </span>

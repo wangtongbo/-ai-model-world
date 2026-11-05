@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { DEFAULT_LANG, getDict } from '@/lib/i18n';
+import { getDict, langLink, type Lang } from '@/lib/i18n';
 import { outbound } from '@/lib/outbound';
 
 /** 数据源署名。CC-BY 4.0 要求每个展示页都能找到出处，所以放在全站布局里而不是某一页。 */
@@ -106,52 +106,71 @@ function ExtLink({ href, children }: { href: string; children: React.ReactNode }
  * 这不是装饰。Epoch 与 LMArena 的 CC-BY 是「署名即可用」的许可，
  * 署名做在每一页的页脚是最稳妥的履约方式——读者截任何一页的图，出处都在。
  * 角色形象借用了哪些社区设定放在 /credits/ 单页，这里只给入口。
+ *
+ * 非中文版（docs/I18N.md 的产品决策）渲染简化版：作者署名 + 源码链接 +
+ * 数据/字体/credits 出处，不放 B 站引流、中文教程与中文导航按钮——
+ * 那些站点只有中文内容，对海外读者是死链。
  */
-export function SiteFooter() {
-  const dict = getDict(DEFAULT_LANG);
+export function SiteFooter({ lang }: { lang: Lang }) {
+  const dict = getDict(lang);
   return (
     <footer className="relative mt-12 border-t border-white/10 bg-black/40">
       <div className="mx-auto max-w-6xl px-4 py-5 text-[12px] leading-relaxed text-[var(--color-ghost)] sm:px-8">
-        {/*
-          站长与他的另外两个站。做成一排像素按钮而不是一行小字：
-          这是全站唯一的引流位，得让人看见；但只占一行，不抢正文。
-        */}
-        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/10 pb-4">
-          <a
-            href={AUTHOR.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 font-pixel text-[13px] text-[var(--color-parchment)] hover:text-[var(--color-gold)]"
-          >
-            <FishCrest />
-            {dict.footer.author}：{AUTHOR.name}
-          </a>
-          <span className="hidden opacity-40 sm:inline">|</span>
-          <a
-            href={TUTORIAL.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={TUTORIAL.blurb}
-            className="pixel-button flex items-center gap-1.5 bg-[var(--color-gold)] px-2 py-0.5 text-[12px] leading-tight text-[var(--color-ink)] hover:brightness-110"
-          >
-            <span className="font-semibold">{TUTORIAL.name}</span>
-            <span className="hidden text-[var(--color-ink-soft)] sm:inline">{TUTORIAL.blurb}</span>
-          </a>
-          <span className="text-[var(--color-ghost)]">{dict.footer.alsoVisit}</span>
-          {AUTHOR_SITES.map((s) => (
+        {lang === 'zh' ? (
+          /*
+            站长与他的另外两个站。做成一排像素按钮而不是一行小字：
+            这是全站唯一的引流位，得让人看见；但只占一行，不抢正文。
+          */
+          <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/10 pb-4">
             <a
-              key={s.href}
-              href={s.href}
+              href={AUTHOR.href}
               target="_blank"
               rel="noopener noreferrer"
-              title={s.blurb}
-              className="pixel-button flex items-center gap-1.5 px-2 py-0.5 text-[12px] leading-tight text-[var(--color-ink)] hover:bg-[var(--color-gold)]"
+              className="flex items-center gap-1.5 font-pixel text-[13px] text-[var(--color-parchment)] hover:text-[var(--color-gold)]"
             >
-              <span className="font-semibold">{s.name}</span>
-              <span className="hidden text-[var(--color-ink-soft)] sm:inline">{s.blurb}</span>
+              <FishCrest />
+              {dict.footer.author}：{AUTHOR.name}
             </a>
-          ))}
-        </div>
+            <span className="hidden opacity-40 sm:inline">|</span>
+            <a
+              href={TUTORIAL.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={TUTORIAL.blurb}
+              className="pixel-button flex items-center gap-1.5 bg-[var(--color-gold)] px-2 py-0.5 text-[12px] leading-tight text-[var(--color-ink)] hover:brightness-110"
+            >
+              <span className="font-semibold">{TUTORIAL.name}</span>
+              <span className="hidden text-[var(--color-ink-soft)] sm:inline">{TUTORIAL.blurb}</span>
+            </a>
+            <span className="text-[var(--color-ghost)]">{dict.footer.alsoVisit}</span>
+            {AUTHOR_SITES.map((s) => (
+              <a
+                key={s.href}
+                href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={s.blurb}
+                className="pixel-button flex items-center gap-1.5 px-2 py-0.5 text-[12px] leading-tight text-[var(--color-ink)] hover:bg-[var(--color-gold)]"
+              >
+                <span className="font-semibold">{s.name}</span>
+                <span className="hidden text-[var(--color-ink-soft)] sm:inline">{s.blurb}</span>
+              </a>
+            ))}
+          </div>
+        ) : (
+          /* 非中文版：只留作者署名，链到开源仓库而不是 B 站 */
+          <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/10 pb-4">
+            <a
+              href={REPO.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 font-pixel text-[13px] text-[var(--color-parchment)] hover:text-[var(--color-gold)]"
+            >
+              <FishCrest />
+              {dict.footer.author}: {dict.ui.footer.authorName}
+            </a>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-x-1.5 gap-y-1">
           <span>{dict.footer.dataFrom}</span>
@@ -174,7 +193,7 @@ export function SiteFooter() {
           ))}
           <span className="mx-1 opacity-50">·</span>
           <Link
-            href="/credits/"
+            href={langLink(lang, '/credits/')}
             className="text-[var(--color-parchment)] underline decoration-dotted underline-offset-2 hover:text-[var(--color-gold)]"
           >
             {dict.footer.credits}

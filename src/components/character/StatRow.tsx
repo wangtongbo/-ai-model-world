@@ -1,4 +1,5 @@
 import type { ModelRecord } from '@/lib/types';
+import { getDict, type Lang } from '@/lib/i18n';
 
 /**
  * 屋子名牌下面那一行硬指标。
@@ -29,8 +30,8 @@ function Icon({ children, title }: { children: React.ReactNode; title: string })
   );
 }
 
-const EyeIcon = (c: string) => (
-  <Icon title="能看图">
+const EyeIcon = (c: string, title: string) => (
+  <Icon title={title}>
     <rect x="1" y="3" width="6" height="2" fill={c} />
     <rect x="2" y="2" width="4" height="1" fill={c} />
     <rect x="2" y="5" width="4" height="1" fill={c} />
@@ -38,24 +39,24 @@ const EyeIcon = (c: string) => (
   </Icon>
 );
 
-const EarIcon = (c: string) => (
-  <Icon title="能听声">
+const EarIcon = (c: string, title: string) => (
+  <Icon title={title}>
     <rect x="1" y="2" width="2" height="4" fill={c} />
     <rect x="5" y="2" width="2" height="4" fill={c} />
     <rect x="3" y="1" width="2" height="1" fill={c} />
   </Icon>
 );
 
-const BrushIcon = (c: string) => (
-  <Icon title="能画图">
+const BrushIcon = (c: string, title: string) => (
+  <Icon title={title}>
     <rect x="5" y="1" width="2" height="2" fill={c} />
     <rect x="3" y="3" width="2" height="2" fill={c} />
     <rect x="1" y="5" width="2" height="2" fill={c} />
   </Icon>
 );
 
-const ToolIcon = (c: string) => (
-  <Icon title="会用工具">
+const ToolIcon = (c: string, title: string) => (
+  <Icon title={title}>
     <rect x="1" y="1" width="2" height="2" fill={c} />
     <rect x="3" y="3" width="2" height="2" fill={c} />
     <rect x="5" y="5" width="2" height="2" fill={c} />
@@ -63,8 +64,8 @@ const ToolIcon = (c: string) => (
   </Icon>
 );
 
-const ThinkIcon = (c: string) => (
-  <Icon title="会深思">
+const ThinkIcon = (c: string, title: string) => (
+  <Icon title={title}>
     <rect x="2" y="1" width="4" height="4" fill={c} />
     <rect x="3" y="5" width="2" height="1" fill={c} />
     <rect x="3" y="6" width="2" height="1" fill={c} />
@@ -72,8 +73,8 @@ const ThinkIcon = (c: string) => (
   </Icon>
 );
 
-const KeyIcon = (c: string) => (
-  <Icon title="开源权重">
+const KeyIcon = (c: string, title: string) => (
+  <Icon title={title}>
     <rect x="1" y="2" width="3" height="3" fill={c} />
     <rect x="2" y="3" width="1" height="1" fill="#10101c" />
     <rect x="4" y="3" width="3" height="1" fill={c} />
@@ -100,6 +101,7 @@ function shortPrice(usd: number | null): string | null {
 export interface StatRowProps {
   model: ModelRecord;
   accent: string;
+  lang: Lang;
   /**
    * 是否显示上下文与价格的数字。
    *
@@ -116,19 +118,20 @@ export interface StatRowProps {
   prune?: { toolIcon?: boolean; thinkIcon?: boolean };
 }
 
-export function StatRow({ model, accent, numbers = true, prune }: StatRowProps) {
+export function StatRow({ model, accent, lang, numbers = true, prune }: StatRowProps) {
+  const dict = getDict(lang);
   const ctx = shortContext(model.contextWindow);
   const price = shortPrice(model.pricing.outputPerMTok);
   const input = new Set(model.modalities.input);
   const output = new Set(model.modalities.output);
 
   const icons = [
-    input.has('image') && EyeIcon(accent),
-    (input.has('audio') || output.has('audio')) && EarIcon(accent),
-    output.has('image') && BrushIcon(accent),
-    model.capabilities.reasoning === true && !prune?.thinkIcon && ThinkIcon(accent),
-    model.capabilities.toolCall === true && !prune?.toolIcon && ToolIcon(accent),
-    model.openWeights === true && KeyIcon(accent),
+    input.has('image') && EyeIcon(accent, dict.ui.statRow.eye),
+    (input.has('audio') || output.has('audio')) && EarIcon(accent, dict.ui.statRow.ear),
+    output.has('image') && BrushIcon(accent, dict.ui.statRow.brush),
+    model.capabilities.reasoning === true && !prune?.thinkIcon && ThinkIcon(accent, dict.ui.statRow.think),
+    model.capabilities.toolCall === true && !prune?.toolIcon && ToolIcon(accent, dict.ui.statRow.tool),
+    model.openWeights === true && KeyIcon(accent, dict.ui.statRow.key),
   ].filter(Boolean);
 
   return (
@@ -137,13 +140,17 @@ export function StatRow({ model, accent, numbers = true, prune }: StatRowProps) 
         <>
           <span
             className="tabular-nums text-[var(--color-parchment)]"
-            title={ctx ? `上下文窗口 ${model.contextWindow!.toLocaleString()} tokens` : '上下文窗口未知'}
+            title={
+              ctx
+                ? dict.ui.statRow.ctxTitle(model.contextWindow!.toLocaleString())
+                : dict.ui.statRow.ctxUnknown
+            }
           >
             {ctx ?? '—'}
           </span>
           <span
             className="tabular-nums text-[var(--color-gold)]"
-            title={price ? `输出 ${model.pricing.outputPerMTok} 美元每百万 tokens` : '无公开报价'}
+            title={price ? dict.ui.statRow.priceTitle(String(model.pricing.outputPerMTok)) : dict.ui.statRow.priceUnknown}
           >
             {price ?? '—'}
           </span>

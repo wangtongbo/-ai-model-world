@@ -1,6 +1,7 @@
 import { CRESTS } from '@/data/crests';
 import { VENDOR_REGISTRY, profileFor } from '@/data/vendor-registry';
 import { VendorCrest } from '@/components/character/VendorCrest';
+import { SiteFooter } from '@/components/world/SiteFooter';
 
 export const metadata = { title: '家徽校对表', robots: { index: false } };
 
@@ -19,6 +20,7 @@ export default function CrestQAPage() {
   }
 
   return (
+    <>
     <main className="min-h-dvh bg-[var(--color-dusk)] p-8">
       <h1 className="pixel-outline mb-2 text-2xl">家徽校对表</h1>
       <p className="mb-8 text-xs text-[var(--color-ghost)]">
@@ -50,5 +52,8 @@ export default function CrestQAPage() {
         })}
       </div>
     </main>
+    {/* 页脚原先由根 layout 渲染；多语言改造后由各页面自带，保持本页视觉效果不变 */}
+    <SiteFooter lang="zh" />
+    </>
   );
 }

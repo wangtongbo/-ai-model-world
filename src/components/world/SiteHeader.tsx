@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Sky } from './Sky';
 import { HorizonEdge } from './Ground';
 import { SiteNav, type NavKey } from './SiteNav';
-import { getDict, type Lang } from '@/lib/i18n';
+import { getDict, langLink, type Lang } from '@/lib/i18n';
 
 /**
  * 首页以外所有页面的页头。
@@ -37,7 +37,7 @@ export function SiteHeader({
         <div className={`${shell} relative flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-2`}>
           {/* 站名兼回首页的入口。pixel-outline 的描边会溢出行盒，leading 要留余量 */}
           <Link
-            href="/"
+            href={langLink(lang, '/')}
             className="pixel-outline font-pixel text-lg leading-[1.5] hover:text-[var(--color-gold)] sm:text-xl"
           >
             {dict.siteName}

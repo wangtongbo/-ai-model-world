@@ -1,4 +1,5 @@
 import type { Continent } from '@/lib/types';
+import type { Lang } from '@/lib/i18n/types';
 
 /**
  * 厂商形象注册表。
@@ -13,6 +14,8 @@ import type { Continent } from '@/lib/types';
 
 export interface VendorProfile {
   nameZh: string;
+  /** 国际通用名（官网通行英文写法）。en/ja/ko 语言一律用它展示。 */
+  nameEn: string;
   /** 形象母题，决定家徽图案。角色的娘化形象另有一张表：`scripts/sprites/chibi/designs.ts`。 */
   motif: string;
   /** 家族纹章与服饰主色 */
@@ -39,10 +42,19 @@ export function continentForCountry(country: string | null | undefined): Contine
   return EAST_COUNTRIES.has(country.toUpperCase()) ? 'east' : 'west';
 }
 
+/**
+ * 厂商显示名：中文站用中文名，en/ja/ko 一律用国际通用名（产品决策：
+ * 厂商名在非中文版不翻译，统一英文原名）。
+ */
+export function vendorName(profile: VendorProfile, lang: Lang): string {
+  return lang === 'zh' ? profile.nameZh : profile.nameEn;
+}
+
 export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   // ── 国外 ──────────────────────────────────────────────────
   openai: {
     nameZh: 'OpenAI',
+    nameEn: 'OpenAI',
     motif: 'blossom', // 品牌标记是六重对称的花结，形象取「花结精灵」
     accentColor: '#10a37f',
     country: 'US',
@@ -50,6 +62,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   anthropic: {
     nameZh: 'Anthropic',
+    nameEn: 'Anthropic',
     motif: 'origami', // 暖橙折纸使者
     accentColor: '#d97757',
     country: 'US',
@@ -57,6 +70,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   google: {
     nameZh: '谷歌',
+    nameEn: 'Google',
     motif: 'gemini', // Gemini 即双子座，形象取「双子星」
     accentColor: '#4285f4',
     country: 'US',
@@ -64,6 +78,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   meta: {
     nameZh: 'Meta',
+    nameEn: 'Meta',
     motif: 'llama', // Llama 羊驼
     accentColor: '#0866ff',
     country: 'US',
@@ -71,6 +86,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   xai: {
     nameZh: 'xAI',
+    nameEn: 'xAI',
     motif: 'voidx', // 黑白星空中的 X
     accentColor: '#1d1d1f',
     country: 'US',
@@ -78,6 +94,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   mistral: {
     nameZh: 'Mistral',
+    nameEn: 'Mistral AI',
     motif: 'wind', // mistral 本义是法国南部的强风
     accentColor: '#fa520f',
     country: 'FR',
@@ -85,6 +102,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   cohere: {
     nameZh: 'Cohere',
+    nameEn: 'Cohere',
     motif: 'ring',
     accentColor: '#39594d',
     country: 'CA',
@@ -92,6 +110,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   microsoft: {
     nameZh: '微软',
+    nameEn: 'Microsoft',
     motif: 'windowpane', // 四色窗格
     accentColor: '#00a4ef',
     country: 'US',
@@ -99,6 +118,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   amazon: {
     nameZh: '亚马逊',
+    nameEn: 'Amazon',
     motif: 'quiver', // 箭袋，取自品牌的箭形标记
     accentColor: '#ff9900',
     country: 'US',
@@ -106,6 +126,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   nvidia: {
     nameZh: '英伟达',
+    nameEn: 'NVIDIA',
     motif: 'greeneye',
     accentColor: '#76b900',
     country: 'US',
@@ -113,6 +134,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   ai21: {
     nameZh: 'AI21',
+    nameEn: 'AI21 Labs',
     motif: 'scribe', // 书记官
     accentColor: '#e7457a',
     country: 'IL',
@@ -120,6 +142,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   allenai: {
     nameZh: 'Allen AI',
+    nameEn: 'Allen AI',
     motif: 'owl', // 学术机构，取猫头鹰
     accentColor: '#0fcb8c',
     country: 'US',
@@ -127,6 +150,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   perplexity: {
     nameZh: 'Perplexity',
+    nameEn: 'Perplexity',
     motif: 'comet',
     accentColor: '#20808d',
     country: 'US',
@@ -134,6 +158,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   reka: {
     nameZh: 'Reka',
+    nameEn: 'Reka AI',
     motif: 'prism',
     accentColor: '#5b5bd6',
     country: 'US',
@@ -141,6 +166,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   liquid: {
     nameZh: 'Liquid AI',
+    nameEn: 'Liquid AI',
     motif: 'droplet',
     accentColor: '#0f6fff',
     country: 'US',
@@ -148,6 +174,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   ibm: {
     nameZh: 'IBM',
+    nameEn: 'IBM',
     motif: 'granite', // Granite 系列，取「花岗岩」
     accentColor: '#0f62fe',
     country: 'US',
@@ -155,6 +182,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   tii: {
     nameZh: 'TII',
+    nameEn: 'TII',
     motif: 'falcon', // Falcon 猎鹰
     accentColor: '#1b3a6b',
     country: 'AE',
@@ -162,6 +190,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   thinkingmachines: {
     nameZh: 'Thinking Machines',
+    nameEn: 'Thinking Machines',
     motif: 'gear',
     accentColor: '#9b8cff',
     country: 'US',
@@ -169,6 +198,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   nousresearch: {
     nameZh: 'Nous Research',
+    nameEn: 'Nous Research',
     motif: 'compass',
     accentColor: '#e0b341',
     country: 'US',
@@ -176,6 +206,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   'arcee-ai': {
     nameZh: 'Arcee AI',
+    nameEn: 'Arcee AI',
     motif: 'arc',
     accentColor: '#5f4bff',
     country: 'US',
@@ -183,6 +214,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   poolside: {
     nameZh: 'Poolside',
+    nameEn: 'Poolside',
     motif: 'wave',
     accentColor: '#00b4d8',
     country: 'US',
@@ -190,6 +222,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   inception: {
     nameZh: 'Inception',
+    nameEn: 'Inception',
     motif: 'ripple', // Mercury 系列是扩散语言模型，取涟漪
     accentColor: '#7c3aed',
     country: 'US',
@@ -197,6 +230,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   morph: {
     nameZh: 'Morph',
+    nameEn: 'Morph',
     motif: 'shift',
     accentColor: '#22c55e',
     country: 'US',
@@ -204,6 +238,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   'swiss-ai': {
     nameZh: 'Swiss AI',
+    nameEn: 'Swiss AI',
     motif: 'alps', // Apertus，取阿尔卑斯
     accentColor: '#d52b1e',
     country: 'CH',
@@ -211,6 +246,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   sdaia: {
     nameZh: 'SDAIA',
+    nameEn: 'SDAIA',
     motif: 'dune', // ALLaM 系列
     accentColor: '#006c35',
     country: 'SA',
@@ -218,6 +254,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   trendyol: {
     nameZh: 'Trendyol',
+    nameEn: 'Trendyol',
     motif: 'tulip', // 郁金香是土耳其的象征
     accentColor: '#f27a1a',
     country: 'TR',
@@ -225,6 +262,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   deepreinforce: {
     nameZh: 'Deep Reinforce',
+    nameEn: 'DeepReinforce',
     motif: 'loop',
     accentColor: '#14b8a6',
     country: 'US',
@@ -234,6 +272,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   // ── 国内 ──────────────────────────────────────────────────
   deepseek: {
     nameZh: '深度求索',
+    nameEn: 'DeepSeek',
     motif: 'whale', // 品牌标记就是一头鲸
     accentColor: '#4d6bfe',
     country: 'CN',
@@ -241,6 +280,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   alibaba: {
     nameZh: '阿里通义',
+    nameEn: 'Alibaba',
     motif: 'qilin', // 通义千问，取瑞兽麒麟
     accentColor: '#615ced',
     country: 'CN',
@@ -248,6 +288,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   moonshotai: {
     nameZh: '月之暗面',
+    nameEn: 'Moonshot AI',
     motif: 'moonrabbit', // 月之暗面，取月兔
     accentColor: '#0d1117',
     country: 'CN',
@@ -255,6 +296,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   zhipuai: {
     nameZh: '智谱',
+    nameEn: 'Zhipu AI',
     motif: 'sage', // 智谱清言，取智者
     accentColor: '#3859ff',
     country: 'CN',
@@ -262,6 +304,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   minimax: {
     nameZh: 'MiniMax',
+    nameEn: 'MiniMax',
     motif: 'conch', // 旗下产品线名为「海螺」
     accentColor: '#ff5a3c',
     country: 'CN',
@@ -269,6 +312,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   'bytedance-seed': {
     nameZh: '字节豆包',
+    nameEn: 'ByteDance',
     motif: 'bean', // 豆包
     accentColor: '#325ffe',
     country: 'CN',
@@ -276,6 +320,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   xiaomi: {
     nameZh: '小米',
+    nameEn: 'Xiaomi',
     motif: 'millet', // 小米即粟
     accentColor: '#ff6900',
     country: 'CN',
@@ -283,6 +328,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   kwaipilot: {
     nameZh: '快手',
+    nameEn: 'Kuaishou',
     motif: 'shutter', // 短视频，取快门
     accentColor: '#ff5000',
     country: 'CN',
@@ -290,6 +336,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   aisingapore: {
     nameZh: 'AI Singapore',
+    nameEn: 'AI Singapore',
     motif: 'merlion', // 鱼尾狮
     accentColor: '#d7263d',
     country: 'SG',
@@ -297,6 +344,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   sarvam: {
     nameZh: 'Sarvam AI',
+    nameEn: 'Sarvam AI',
     motif: 'lotus',
     accentColor: '#ff8c1a',
     country: 'IN',
@@ -304,6 +352,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   tencent: {
     nameZh: '腾讯混元',
+    nameEn: 'Tencent',
     motif: 'penguin', // 企鹅
     accentColor: '#0052d9',
     country: 'CN',
@@ -311,6 +360,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   baidu: {
     nameZh: '百度文心',
+    nameEn: 'Baidu',
     motif: 'bearpaw', // 百度熊掌
     accentColor: '#2932e1',
     country: 'CN',
@@ -318,6 +368,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   '01-ai': {
     nameZh: '零一万物',
+    nameEn: '01.AI',
     motif: 'zeroone', // 0 与 1 的符文
     accentColor: '#0ea5e9',
     country: 'CN',
@@ -325,6 +376,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   stepfun: {
     nameZh: '阶跃星辰',
+    nameEn: 'StepFun',
     motif: 'stair', // 阶跃
     accentColor: '#1a56db',
     country: 'CN',
@@ -332,6 +384,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   meituan: {
     nameZh: '美团龙猫',
+    nameEn: 'Meituan',
     motif: 'cat', // LongCat
     accentColor: '#ffd100',
     country: 'CN',
@@ -339,6 +392,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   inclusionai: {
     nameZh: '蚂蚁百灵',
+    nameEn: 'Ant Group',
     motif: 'ant', // 蚂蚁集团
     accentColor: '#1677ff',
     country: 'CN',
@@ -346,6 +400,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   iflytek: {
     nameZh: '科大讯飞',
+    nameEn: 'iFlytek',
     motif: 'spark', // 星火
     accentColor: '#1f6fff',
     country: 'CN',
@@ -353,6 +408,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   sensetime: {
     nameZh: '商汤',
+    nameEn: 'SenseTime',
     motif: 'sunrise', // 日日新
     accentColor: '#eb2f2f',
     country: 'CN',
@@ -360,6 +416,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   skywork: {
     nameZh: '昆仑万维',
+    nameEn: 'Skywork AI',
     motif: 'kunlun', // 昆仑山
     accentColor: '#2f6bff',
     country: 'CN',
@@ -367,6 +424,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   sakana: {
     nameZh: 'Sakana AI',
+    nameEn: 'Sakana AI',
     motif: 'fish', // sakana 即日语「魚」
     accentColor: '#ef4444',
     country: 'JP',
@@ -374,6 +432,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   upstage: {
     nameZh: 'Upstage',
+    nameEn: 'Upstage',
     motif: 'sun', // Solar 系列
     accentColor: '#8b5cf6',
     country: 'KR',
@@ -381,6 +440,7 @@ export const VENDOR_REGISTRY: Record<string, VendorProfile> = {
   },
   naver: {
     nameZh: 'NAVER',
+    nameEn: 'NAVER',
     motif: 'hyperclova',
     accentColor: '#03c75a',
     country: 'KR',
@@ -431,6 +491,7 @@ export function profileFor(vendorId: string): VendorProfile {
   return (
     VENDOR_REGISTRY[id] ?? {
       nameZh: vendorId,
+      nameEn: vendorId,
       motif: FALLBACK_MOTIF,
       accentColor: '#8a8a8a',
       country: '',

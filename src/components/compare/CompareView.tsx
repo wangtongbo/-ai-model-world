@@ -5,10 +5,12 @@ import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from
 import { AbilityBars } from '@/components/character/AbilityBars';
 import { VendorCrest } from '@/components/character/VendorCrest';
 import { useUrlQuery } from '@/components/leaderboard/useUrlQuery';
-import { APTITUDES, type AptitudeRow } from '@/lib/aptitude';
-import { getDict, DEFAULT_LANG } from '@/lib/i18n';
-import type { Modality } from '@/lib/types';
+import { aptitudesFor, type AptitudeRow } from '@/lib/aptitude';
+import { BENCHMARK_CATEGORIES, categoryName } from '@/data/benchmark-registry';
+import { profileFor, vendorName } from '@/data/vendor-registry';
+import { getDict, langLink, lt, type Dict, type Lang } from '@/lib/i18n';
 import {
+  cellText,
   cutoffMonth,
   cutoffText,
   headToHead,
@@ -36,16 +38,24 @@ import type { CmpModel, CompareData } from './types';
  * 这时规格排到跑分前面。
  */
 
-const dict = getDict(DEFAULT_LANG);
-
-const MOD_ZH: Record<Modality, string> = { text: '文字', image: '图片', audio: '声音', video: '视频', pdf: '文件' };
-
 /** 同一套跑分至少要交手这么多项，才默认只看共同项、并把跑分排在规格前面 */
 const MIN_CONTESTED = 3;
 
-function usd(n: number | null): string | null {
+/** 榜单分类的展示名。分类 id 是管线契约（中文取值），展示名查注册表。 */
+function catLabel(id: string, lang: Lang): string {
+  const cat = BENCHMARK_CATEGORIES.find((c) => c.id === id);
+  return cat ? categoryName(cat, lang) : id;
+}
+
+/** 厂商显示名。compare-data.json 里只存了中文名；非中文版按产品决策用注册表的国际通用名。 */
+function cmpVendorName(data: CompareData, vendorId: string, lang: Lang): string {
+  if (lang === 'zh') return data.vendors[vendorId]?.name ?? vendorId;
+  return vendorName(profileFor(vendorId), lang);
+}
+
+function usd(n: number | null, dict: Dict): string | null {
   if (n == null) return null;
-  if (n === 0) return '免费';
+  if (n === 0) return dict.ui.compare.free;
   return `$${n < 0.1 ? n.toFixed(3) : n < 10 ? +n.toFixed(2) : Math.round(n)}`;
 }
 
@@ -56,16 +66,27 @@ function tokens(n: number | null): string | null {
   return String(n);
 }
 
-function yesNo(v: boolean | null): string | null {
-  return v == null ? null : v ? '支持' : '不支持';
+function yesNo(v: boolean | null, dict: Dict): string | null {
+  return v == null ? null : v ? dict.ui.compare.supported : dict.ui.compare.unsupported;
 }
 
-function aptRow(m: CmpModel): AptitudeRow {
+function aptRow(m: CmpModel, lang: Lang): AptitudeRow {
   return {
     values: Object.fromEntries(
-      APTITUDES.map(({ id }) => {
+      aptitudesFor(lang).map(({ id }) => {
         const [fill, literal, self, labelOverride] = m.apt[id];
-        return [id, { id, fill, literal, verdict: null, selfReported: self === 1, labelOverride, title: '' }];
+        return [
+          id,
+          {
+            id,
+            fill,
+            literal: literal == null ? null : lt(literal, lang),
+            verdict: null,
+            selfReported: self === 1,
+            labelOverride: labelOverride ? lt(labelOverride, lang) : undefined,
+            title: '',
+          },
+        ];
       }),
     ) as AptitudeRow['values'],
     known: 0,
@@ -80,26 +101,38 @@ interface SpecDef {
   text: (m: CmpModel) => string | null;
   value?: (m: CmpModel) => number | null;
   better?: SpecBetter;
+  /** 「各家一样」合并行用的短标签；缺省沿用 label */
+  short?: string;
   /** 各家一样时也照常占一行。发布日期即使同一天也是读者要找的信息 */
   keep?: boolean;
 }
 
-const SPECS: SpecDef[] = [
-  { label: '发布日期', text: (m) => m.dateText, keep: true },
-  { label: '类型', text: (m) => (m.kind ? `${dict.kind.label[m.kind]}模型` : null) },
-  { label: '上下文窗口', text: (m) => tokens(m.ctx), value: (m) => m.ctx, better: 'high' },
-  { label: '单次最多输出', text: (m) => tokens(m.maxOut), value: (m) => m.maxOut, better: 'high' },
-  { label: '输入价 / 百万 tokens', text: (m) => usd(m.priceIn), value: (m) => m.priceIn, better: 'low' },
-  { label: '输出价 / 百万 tokens', text: (m) => usd(m.priceOut), value: (m) => m.priceOut, better: 'low' },
-  { label: '缓存命中价', text: (m) => usd(m.priceCached), value: (m) => m.priceCached, better: 'low' },
-  { label: '知识截止', text: (m) => cutoffText(m.cutoff), value: (m) => cutoffMonth(m.cutoff), better: 'high' },
-  { label: '能读', text: (m) => (m.inputs.length ? m.inputs.map((x) => MOD_ZH[x]).join('、') : null) },
-  { label: '能生成', text: (m) => (m.outputs.length ? m.outputs.map((x) => MOD_ZH[x]).join('、') : null) },
-  { label: '深度思考', text: (m) => yesNo(m.reasoning) },
-  { label: '工具调用', text: (m) => yesNo(m.tool) },
-  { label: '开源权重', text: (m) => (m.open == null ? null : m.open ? '开源' : '闭源') },
-  { label: '参数量', text: (m) => m.params ?? '未公布' },
-];
+function specsFor(dict: Dict, lang: Lang): SpecDef[] {
+  const s = dict.ui.compare;
+  const mod = dict.lib.insights.modality;
+  return [
+    { label: s.spec.releaseDate, text: (m) => lt(m.dateText, lang), keep: true },
+    { label: s.spec.kind, text: (m) => (m.kind ? s.kindModel(dict.kind.label[m.kind]) : null) },
+    { label: s.spec.ctx, text: (m) => tokens(m.ctx), value: (m) => m.ctx, better: 'high' },
+    { label: s.spec.maxOut, text: (m) => tokens(m.maxOut), value: (m) => m.maxOut, better: 'high' },
+    { label: s.spec.priceIn, short: s.specShort.priceIn, text: (m) => usd(m.priceIn, dict), value: (m) => m.priceIn, better: 'low' },
+    { label: s.spec.priceOut, short: s.specShort.priceOut, text: (m) => usd(m.priceOut, dict), value: (m) => m.priceOut, better: 'low' },
+    { label: s.spec.priceCached, short: s.specShort.priceCached, text: (m) => usd(m.priceCached, dict), value: (m) => m.priceCached, better: 'low' },
+    { label: s.spec.cutoff, text: (m) => cutoffText(m.cutoff, lang), value: (m) => cutoffMonth(m.cutoff), better: 'high' },
+    {
+      label: s.spec.inputs,
+      text: (m) => (m.inputs.length ? dict.lib.insights.joinList(m.inputs.map((x) => mod[x] ?? x)) : null),
+    },
+    {
+      label: s.spec.outputs,
+      text: (m) => (m.outputs.length ? dict.lib.insights.joinList(m.outputs.map((x) => mod[x] ?? x)) : null),
+    },
+    { label: s.spec.reasoning, text: (m) => yesNo(m.reasoning, dict) },
+    { label: s.spec.tool, text: (m) => yesNo(m.tool, dict) },
+    { label: s.spec.open, text: (m) => (m.open == null ? null : m.open ? s.open : s.closed) },
+    { label: s.spec.params, text: (m) => (m.params ? lt(m.params, lang) : s.paramsUnknown) },
+  ];
+}
 
 // ─── 小部件 ──────────────────────────────────────────────────────
 
@@ -165,32 +198,46 @@ function SectionTitle({ children, aside }: { children: ReactNode; aside?: ReactN
 }
 
 /** 左上角的总比分。两人对阵是「20 : 5」，三四个人时列在各自卡片底部 */
-function Scoreboard({ n, score, accents }: { n: number; score: Tally; accents: string[] }) {
-  if (n < 2) return <div className="text-[13px] text-[var(--color-ghost)]">再添加一个模型开始对比</div>;
+function Scoreboard({ n, score, accents, lang }: { n: number; score: Tally; accents: string[]; lang: Lang }) {
+  const dict = getDict(lang);
+  if (n < 2) return <div className="text-[13px] text-[var(--color-ghost)]">{dict.ui.compare.addMore}</div>;
   if (score.contested === 0) {
-    return <div className="text-[13px] leading-relaxed text-[var(--color-ghost)]">还没有共同参加的评测</div>;
+    return (
+      <div className="text-[13px] leading-relaxed text-[var(--color-ghost)]">{dict.ui.compare.noContested}</div>
+    );
   }
-  if (n > 2) return <div className="text-[13px] text-[var(--color-ghost)]">跑分交手 {score.contested} 项</div>;
+  if (n > 2) {
+    return (
+      <div className="text-[13px] text-[var(--color-ghost)]">
+        {dict.ui.compare.contestedCount(score.contested)}
+      </div>
+    );
+  }
   return (
     <div className="text-center sm:text-left">
-      <div className="text-[13px] text-[var(--color-ghost)]">跑分交手 {score.contested} 项</div>
+      <div className="text-[13px] text-[var(--color-ghost)]">
+        {dict.ui.compare.contestedCount(score.contested)}
+      </div>
       <div className="font-pixel mt-1 text-4xl leading-none tabular-nums">
         <span style={{ color: accents[0] }}>{score.wins[0]}</span>
         <span className="mx-2 text-white/40">:</span>
         <span style={{ color: accents[1] }}>{score.wins[1]}</span>
       </div>
-      {score.ties > 0 && <div className="mt-1 text-[12px] text-[var(--color-ghost)]">打平 {score.ties} 项</div>}
+      {score.ties > 0 && (
+        <div className="mt-1 text-[12px] text-[var(--color-ghost)]">{dict.ui.compare.ties(score.ties)}</div>
+      )}
     </div>
   );
 }
 
-function SpecsBlock({ picked }: { picked: CmpModel[] }) {
+function SpecsBlock({ picked, lang }: { picked: CmpModel[]; lang: Lang }) {
+  const dict = getDict(lang);
   const n = picked.length;
   const same: [string, string][] = [];
-  const rows = SPECS.flatMap((spec) => {
+  const rows = specsFor(dict, lang).flatMap((spec) => {
     const texts = picked.map(spec.text);
     if (!spec.keep && n >= 2 && texts.every((t) => t === texts[0])) {
-      same.push([spec.label.replace(' / 百万 tokens', ''), texts[0] ?? '暂无']);
+      same.push([spec.short ?? spec.label, texts[0] ?? dict.ui.compare.noValue]);
       return [];
     }
     const winners = spec.value ? specWinners(picked.map(spec.value), spec.better ?? null) : [];
@@ -210,7 +257,7 @@ function SpecsBlock({ picked }: { picked: CmpModel[] }) {
                     : 'text-[var(--color-parchment)]'
               }`}
             >
-              {text ?? '暂无'}
+              {text ?? dict.ui.compare.noValue}
             </div>
           );
         })}
@@ -220,11 +267,11 @@ function SpecsBlock({ picked }: { picked: CmpModel[] }) {
 
   return (
     <>
-      <SectionTitle>基本信息</SectionTitle>
+      <SectionTitle>{dict.ui.compare.specsTitle}</SectionTitle>
       {rows}
       {same.length > 0 && (
         <Grid n={n}>
-          <RowLabel>{n === 2 ? '两者一样' : '都一样'}</RowLabel>
+          <RowLabel>{n === 2 ? dict.ui.compare.sameBoth : dict.ui.compare.sameAll}</RowLabel>
           <p
             className="flex flex-wrap gap-x-5 gap-y-1 py-2 text-[13px] leading-relaxed"
             style={{ gridColumn: 'span var(--n) / span var(--n)' }}
@@ -248,13 +295,16 @@ function ScoresBlock({
   accents,
   scope,
   setScope,
+  lang,
 }: {
   rows: H2HRow[];
   picked: CmpModel[];
   accents: string[];
   scope: 'auto' | 'common' | 'all';
   setScope: (s: 'common' | 'all') => void;
+  lang: Lang;
 }) {
+  const dict = getDict(lang);
   const n = picked.length;
   const common = rows.filter(isContested);
   const effective = scope === 'auto' ? (common.length >= MIN_CONTESTED ? 'common' : 'all') : scope;
@@ -272,11 +322,11 @@ function ScoresBlock({
       <SectionTitle
         aside={
           n >= 2 && common.length > 0 && common.length < rows.length ? (
-            <div className="flex gap-1.5 text-[13px]" role="group" aria-label="显示范围">
+            <div className="flex gap-1.5 text-[13px]" role="group" aria-label={dict.ui.compare.scopeGroup}>
               {(
                 [
-                  ['common', `共同参加 ${common.length}`],
-                  ['all', `全部 ${rows.length}`],
+                  ['common', dict.ui.compare.scopeCommon(common.length)],
+                  ['all', dict.ui.compare.scopeAll(rows.length)],
                 ] as const
               ).map(([key, label]) => (
                 <button
@@ -297,33 +347,33 @@ function ScoresBlock({
           ) : null
         }
       >
-        评测跑分
+        {dict.ui.compare.scoresTitle}
       </SectionTitle>
 
       {rows.length === 0 && (
-        <p className="py-4 text-[14px] text-[var(--color-ghost)]">
-          {n === 1 ? '这个模型' : '这几个模型'}还没有公开的第三方评测成绩，新模型一般要一到两周才会被测到。
-        </p>
+        <p className="py-4 text-[14px] text-[var(--color-ghost)]">{dict.ui.compare.noScores(n === 1)}</p>
       )}
 
       {[...byCategory.entries()].map(([category, list]) => (
         <div key={category}>
-          <div className="mt-3 text-[13px] font-medium text-[var(--color-gold)]">{category}</div>
+          <div className="mt-3 text-[13px] font-medium text-[var(--color-gold)]">{catLabel(category, lang)}</div>
           {list.map((row) => (
             <Grid key={row.bench.key} n={n} className="border-b border-white/[0.07]">
-              <RowLabel title={row.bench.blurb}>
+              <RowLabel title={lt(row.bench.blurb, lang)}>
                 {row.bench.track ? (
                   <Link
-                    href={`/leaderboard/?track=${encodeURIComponent(row.bench.track)}`}
+                    href={langLink(lang, `/leaderboard/?track=${encodeURIComponent(row.bench.track)}`)}
                     className="text-[var(--color-parchment-dim)] hover:text-[var(--color-gold)]"
                   >
-                    {row.bench.label}
+                    {lt(row.bench.label, lang)}
                   </Link>
                 ) : (
-                  <span className="text-[var(--color-parchment-dim)]">{row.bench.label}</span>
+                  <span className="text-[var(--color-parchment-dim)]">{lt(row.bench.label, lang)}</span>
                 )}
-                {!row.bench.higherIsBetter && <span className="ml-1 text-[11px]">越低越好</span>}
-                {row.bench.superseded && <span className="ml-1 text-[11px]">旧版</span>}
+                {!row.bench.higherIsBetter && (
+                  <span className="ml-1 text-[11px]">{dict.ui.compare.lowerBetter}</span>
+                )}
+                {row.bench.superseded && <span className="ml-1 text-[11px]">{dict.ui.compare.legacy}</span>}
               </RowLabel>
               {row.cells.map((c, i) => {
                 const win = row.winners.includes(i);
@@ -336,8 +386,10 @@ function ScoresBlock({
                             win ? 'font-medium text-[var(--color-gold)]' : 'text-[var(--color-parchment)]'
                           }`}
                         >
-                          {c.text}
-                          {row.bench.selfReported && <span className="ml-1 text-[11px] text-white/40">自报</span>}
+                          {cellText(row.bench, c, lang)}
+                          {row.bench.selfReported && (
+                            <span className="ml-1 text-[11px] text-white/40">{dict.ui.compare.selfReport}</span>
+                          )}
                         </span>
                         <div className="h-2 min-w-0 flex-1 bg-white/[0.06]">
                           <div
@@ -352,14 +404,16 @@ function ScoresBlock({
                         {/* 榜上不足 3 个模型时「#1/1」没有信息量，官方自报的新榜常常只有它自己 */}
                         <span
                           className="hidden w-14 shrink-0 text-right text-[11px] tabular-nums text-white/35 sm:inline"
-                          title={`在这个榜的 ${row.bench.n} 个模型里排第 ${c.rank}`}
+                          title={dict.ui.compare.rankTitle(row.bench.n, c.rank)}
                         >
                           {row.bench.n >= 3 ? `#${c.rank}/${row.bench.n}` : ''}
                         </span>
                       </>
                     ) : (
                       // 自报的榜是厂商自己挑着公布的，另一方没有数字是「没公布」，不是「没参加」
-                      <span className="text-[13px] text-white/30">{row.bench.selfReported ? '未公布' : '未参赛'}</span>
+                      <span className="text-[13px] text-white/30">
+                        {row.bench.selfReported ? dict.ui.compare.notPublished : dict.ui.compare.notEntered}
+                      </span>
                     )}
                   </div>
                 );
@@ -374,7 +428,8 @@ function ScoresBlock({
 
 // ─── 主组件 ──────────────────────────────────────────────────────
 
-export function CompareView({ dataUrl, spriteBase }: { dataUrl: string; spriteBase: string }) {
+export function CompareView({ dataUrl, spriteBase, lang }: { dataUrl: string; spriteBase: string; lang: Lang }) {
+  const dict = getDict(lang);
   const [params, update] = useUrlQuery();
   const [data, setData] = useState<CompareData | null>(null);
   const [failed, setFailed] = useState(false);
@@ -421,34 +476,44 @@ export function CompareView({ dataUrl, spriteBase }: { dataUrl: string; spriteBa
   if (failed) {
     return (
       <div className="pixel-panel-dark mt-6 p-6 text-[14px] text-[var(--color-parchment)]">
-        对比数据没有加载成功，刷新一下试试。
+        {dict.ui.compare.loadFailed}
       </div>
     );
   }
 
   if (!data || !params) {
-    return <div className="py-16 text-center text-[14px] text-[var(--color-ghost)]">正在载入模型数据…</div>;
+    return (
+      <div className="py-16 text-center text-[14px] text-[var(--color-ghost)]">{dict.ui.compare.loading}</div>
+    );
   }
 
   const n = picked.length;
   const duel = n === 2;
   // 跑分是对比页的主角：有足够多的共同项、或者跑分行本身就不少时都排在规格前面
   const scoresFirst = score.contested >= MIN_CONTESTED || rows.length >= 6;
-  const specs = <SpecsBlock picked={picked} />;
-  const scores = <ScoresBlock rows={rows} picked={picked} accents={accents} scope={scope} setScope={setScope} />;
+  const specs = <SpecsBlock picked={picked} lang={lang} />;
+  const scores = (
+    <ScoresBlock rows={rows} picked={picked} accents={accents} scope={scope} setScope={setScope} lang={lang} />
+  );
 
   return (
     <div className="mx-auto" style={{ maxWidth: n > 0 ? 200 + n * 380 : undefined }}>
       <div className="mb-5 mt-4 flex flex-wrap items-end justify-between gap-3">
-        <h1 className="pixel-outline text-2xl sm:text-3xl">模型对比</h1>
-        <ModelPicker data={data} picked={slugs} onPick={(s) => setSlugs([...slugs, s])} disabled={n >= MAX_PICK} />
+        <h1 className="pixel-outline text-2xl sm:text-3xl">{dict.ui.compare.title}</h1>
+        <ModelPicker
+          data={data}
+          picked={slugs}
+          onPick={(s) => setSlugs([...slugs, s])}
+          disabled={n >= MAX_PICK}
+          lang={lang}
+        />
       </div>
 
       {n === 0 && (
         <div className="pixel-panel-dark p-6">
-          <p className="mb-4 text-[14px] text-[var(--color-parchment)]">在右上角挑两个模型，或者从这几场开始：</p>
+          <p className="mb-4 text-[14px] text-[var(--color-parchment)]">{dict.ui.compare.emptyHint}</p>
           <div className="flex flex-wrap gap-3">
-            {presetsOf(data).map((p) => (
+            {presetsOf(data, lang).map((p) => (
               <button
                 key={p.label}
                 type="button"
@@ -457,7 +522,7 @@ export function CompareView({ dataUrl, spriteBase }: { dataUrl: string; spriteBa
               >
                 <span className="block font-medium">{p.label}</span>
                 <span className="block text-[12px] opacity-75">
-                  {p.slugs.map((s) => bySlug.get(s)?.name).join(' 对 ')}
+                  {dict.ui.compare.joinNames(p.slugs.map((s) => bySlug.get(s)?.name ?? s))}
                 </span>
               </button>
             ))}
@@ -469,7 +534,7 @@ export function CompareView({ dataUrl, spriteBase }: { dataUrl: string; spriteBa
         <>
           <Grid n={n}>
             <div className="col-span-full mb-3 flex flex-col justify-center sm:col-span-1 sm:mb-0">
-              <Scoreboard n={n} score={score} accents={accents} />
+              <Scoreboard n={n} score={score} accents={accents} lang={lang} />
             </div>
 
             {picked.map((m, i) => {
@@ -483,15 +548,15 @@ export function CompareView({ dataUrl, spriteBase }: { dataUrl: string; spriteBa
                   <button
                     type="button"
                     onClick={() => setSlugs(slugs.filter((s) => s !== m.slug))}
-                    aria-label={`移除 ${m.name}`}
-                    title="移除"
+                    aria-label={dict.ui.compare.removeAria(m.name)}
+                    title={dict.ui.compare.remove}
                     className="absolute right-1.5 top-1 px-1.5 text-[16px] leading-none text-white/40 hover:text-[var(--color-gold)]"
                   >
                     ×
                   </button>
                   <Sprite m={m} base={spriteBase} accent={accents[i]} />
                   <Link
-                    href={`/model/${m.slug}/`}
+                    href={langLink(lang, `/model/${m.slug}/`)}
                     className="pixel-outline mt-1 text-[17px] leading-snug hover:text-[var(--color-gold)] sm:text-[20px]"
                   >
                     {m.name}
@@ -500,7 +565,7 @@ export function CompareView({ dataUrl, spriteBase }: { dataUrl: string; spriteBa
                     {v && (
                       <span className="flex items-center gap-1" style={{ color: v.accent }}>
                         <VendorCrest motif={v.motif} accentColor={v.accent} size={14} />
-                        {v.name}
+                        {cmpVendorName(data, m.vendor, lang)}
                       </span>
                     )}
                     {v && (
@@ -510,17 +575,19 @@ export function CompareView({ dataUrl, spriteBase }: { dataUrl: string; spriteBa
                     )}
                   </div>
                   <div className="mt-1 text-[13px] text-[var(--color-gold)]">
-                    {m.eciRank != null ? `综合智力第 ${m.eciRank} 名` : '综合智力暂无排名'}
-                    {m.retired && <span className="ml-2 text-[var(--color-ghost)]">已退役</span>}
+                    {m.eciRank != null ? dict.ui.compare.eciRank(m.eciRank) : dict.ui.compare.eciNoRank}
+                    {m.retired && <span className="ml-2 text-[var(--color-ghost)]">{dict.status.retired}</span>}
                   </div>
-                  <p className="mt-2 text-[13px] leading-snug text-[var(--color-parchment-dim)]">{m.persona}</p>
+                  <p className="mt-2 text-[13px] leading-snug text-[var(--color-parchment-dim)]">
+                    {lt(m.persona, lang)}
+                  </p>
                   {n >= 2 && score.contested > 0 && (
                     <div className="mt-3 text-[14px] text-[var(--color-parchment)]">
-                      {duel ? '胜' : '第一'}{' '}
+                      {dict.ui.compare.winsLead(duel)}{' '}
                       <span className="font-pixel text-[20px] tabular-nums" style={{ color: accents[i] }}>
                         {score.wins[i]}
                       </span>{' '}
-                      项
+                      {dict.ui.compare.itemsUnit}
                     </div>
                   )}
                 </div>
@@ -530,12 +597,14 @@ export function CompareView({ dataUrl, spriteBase }: { dataUrl: string; spriteBa
 
           {n >= 2 && (
             <Grid n={n} className="mt-4">
-              <RowLabel>各自亮点</RowLabel>
+              <RowLabel>{dict.ui.compare.highlightsTitle}</RowLabel>
               {picked.map((m, i) => {
-                const hs = highlightsFor(rows, picked, i);
+                const hs = highlightsFor(rows, picked, i, lang);
                 return (
                   <ul key={m.slug} className="flex flex-col gap-1.5 py-2">
-                    {hs.length === 0 && <li className="text-[13px] text-white/30">暂无明显亮点</li>}
+                    {hs.length === 0 && (
+                      <li className="text-[13px] text-white/30">{dict.ui.compare.noHighlights}</li>
+                    )}
                     {hs.map((h) => (
                       <li key={h.text} className="flex gap-1.5 text-[13px] leading-snug text-[var(--color-parchment)]">
                         <span aria-hidden className="shrink-0" style={{ color: accents[i] }}>
@@ -551,16 +620,14 @@ export function CompareView({ dataUrl, spriteBase }: { dataUrl: string; spriteBa
           )}
 
           <Grid n={n} className="mt-2">
-            <RowLabel title="在全部模型里的分位：聪明取综合智力，编程取最可信的一项编程评测，记性是上下文窗口，便宜是输出价">
-              能力分位
-            </RowLabel>
+            <RowLabel title={dict.ui.compare.aptHint}>{dict.ui.compare.aptLabel}</RowLabel>
             {picked.map((m) => (
               <div key={m.slug} className="py-2">
                 <div className="sm:hidden">
-                  <AbilityBars row={aptRow(m)} compact />
+                  <AbilityBars row={aptRow(m, lang)} lang={lang} compact />
                 </div>
                 <div className="hidden max-w-72 sm:block">
-                  <AbilityBars row={aptRow(m)} />
+                  <AbilityBars row={aptRow(m, lang)} lang={lang} />
                 </div>
               </div>
             ))}
@@ -579,9 +646,7 @@ export function CompareView({ dataUrl, spriteBase }: { dataUrl: string; spriteBa
           )}
 
           <p className="mt-8 text-[12px] leading-relaxed text-[var(--color-ghost)]">
-            数据截至 {data.generatedAt.slice(0, 10)}。跑分来自 Epoch AI、LiveBench、LMArena 官方数据集等第三方公开评测，
-            标「自报」的是厂商在官网发布文里公布的成绩，未经第三方复核。只在同一榜单、同一测量方之间比较；
-            「#3/25」是在该榜全部模型里的名次。
+            {dict.ui.compare.footnote(data.generatedAt.slice(0, 10))}
           </p>
         </>
       )}

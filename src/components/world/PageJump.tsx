@@ -1,3 +1,5 @@
+import { getDict, type Lang } from '@/lib/i18n';
+
 export interface JumpTarget {
   /** 锚点，如 `#region-east` */
   href: string;
@@ -18,10 +20,10 @@ export interface JumpTarget {
  *
  * 放在内容区最上面一行：读者从顶栏往下扫，第一眼看到的就是这一页有什么。
  */
-export function PageJump({ targets }: { targets: JumpTarget[] }) {
+export function PageJump({ targets, lang }: { targets: JumpTarget[]; lang: Lang }) {
   if (targets.length === 0) return null;
   return (
-    <nav aria-label="本页导航" className="mb-5 flex flex-wrap items-center gap-2">
+    <nav aria-label={getDict(lang).a11y.pageNav} className="mb-5 flex flex-wrap items-center gap-2">
       {targets.map((t) => (
         <a
           key={t.href}

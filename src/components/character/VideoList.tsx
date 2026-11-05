@@ -1,5 +1,6 @@
 import { BiliLink } from './BiliLink';
 import { formatView, type VideoRecord } from '@/lib/videos';
+import type { Lang } from '@/lib/i18n';
 
 /**
  * 详情页底部的 B 站实测视频。
@@ -20,12 +21,16 @@ export function VideoList({
   modelName,
   keyword,
   authorMid,
+  lang,
 }: {
   videos: VideoRecord[];
   modelName: string;
   keyword: string;
   authorMid: number;
+  lang: Lang;
 }) {
+  // 数据全是中文 B 站视频，非中文版整块不渲染（docs/I18N.md 的产品决策）
+  if (lang !== 'zh') return null;
   if (videos.length === 0) return null;
   const searchUrl = `https://search.bilibili.com/all?keyword=${encodeURIComponent(`${modelName} ${keyword}`)}`;
 

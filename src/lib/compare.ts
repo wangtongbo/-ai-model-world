@@ -10,18 +10,24 @@
  */
 
 import type { CmpApt, CmpBench, CmpModel, CmpScore, CmpVendor, CompareData } from '@/components/compare/types';
-import { BENCHMARK_CATEGORIES, benchmarkOf, canonicalBenchmarkId } from '@/data/benchmark-registry';
+import { BENCHMARK_CATEGORIES, benchmarkDescription, benchmarkName, benchmarkOf, canonicalBenchmarkId } from '@/data/benchmark-registry';
 import { continentForCountry, profileFor } from '@/data/vendor-registry';
-import { APTITUDES, buildAptitudeScale, type AptitudeId } from './aptitude';
+import { APTITUDES, buildAptitudeScale, type AptitudeId, type AptitudeScale } from './aptitude';
 import { attributionFor, loadAttribution } from './attribution';
 import { readableOnDark } from './color';
 import { buildScales, rankByEci, TIER_SCALE, visualOf } from './derive';
 import { formatDate, formatParams } from './format';
-import { DEFAULT_LANG } from './i18n';
+import { DEFAULT_LANG, LANGS, type Lang, type LText } from './i18n';
+import { libDict } from './i18n/lib-dict';
 import { kindOf } from './kind';
 import { buildPersonaContext, personaFor } from './persona';
 import { buildScorePools, formatLeagueScore, poolKeyOf, rankInPool, trackIdFor } from './scores';
 import type { Attribution, WorldSnapshot } from './types';
+
+/** 同一逻辑按四语言各算一遍。zh 的输出与改造前逐字节一致。 */
+function perLang(fn: (lang: Lang) => string): LText {
+  return Object.fromEntries(LANGS.map((l) => [l, fn(l)])) as LText;
+}
 
 export function buildCompareData(snapshot: WorldSnapshot, spriteSlugs: ReadonlySet<string>): CompareData {
   const { models } = snapshot;
@@ -42,9 +48,11 @@ export function buildCompareData(snapshot: WorldSnapshot, spriteSlugs: ReadonlyS
     const idx = benches.length;
     benches.push({
       key,
-      label: self && hasThirdParty ? `${info.label}（厂商自报）` : info.label,
+      label: perLang((l) =>
+        self && hasThirdParty ? benchmarkName(info, l) + libDict[l].insights.selfReportSuffix : benchmarkName(info, l),
+      ),
       category: info.category,
-      blurb: info.blurb,
+      blurb: perLang((l) => benchmarkDescription(info, l)),
       unit,
       higherIsBetter: info.higherIsBetter,
       selfReported: self,
@@ -74,7 +82,10 @@ export function buildCompareData(snapshot: WorldSnapshot, spriteSlugs: ReadonlyS
     (id) => attributionFor(attribution, id, 'swe_bench_pro')?.attributionType === 'third-party',
   );
   const ranks = rankByEci(models);
-  const aptitude = buildAptitudeScale(models);
+  // 能力条按四语言各建一把标尺：分位池一样，只有文案不同
+  const aptitudeByLang = Object.fromEntries(
+    LANGS.map((l) => [l, buildAptitudeScale(models, l)]),
+  ) as Record<Lang, AptitudeScale>;
   const personaCtx = buildPersonaContext(models, snapshot.vendors);
   const vendors = new Map(snapshot.vendors.map((v) => [v.id, v]));
   const now = new Date(snapshot.generatedAt);
@@ -86,23 +97,29 @@ export function buildCompareData(snapshot: WorldSnapshot, spriteSlugs: ReadonlyS
       const vendor = vendors.get(m.vendorId);
       vendorOut[m.vendorId] = {
         name: vendor?.nameZh ?? profile.nameZh,
+        nameEn: profile.nameEn,
         motif: vendor?.motif ?? profile.motif,
         accent: readableOnDark(vendor?.accentColor ?? profile.accentColor),
         continent: vendor?.continent ?? continentForCountry(profile.country),
       };
     }
     const rank = ranks.get(m.id) ?? null;
-    const row = aptitude.rowOf(m);
+    const rowsByLang = Object.fromEntries(LANGS.map((l) => [l, aptitudeByLang[l].rowOf(m)])) as Record<
+      Lang,
+      ReturnType<AptitudeScale['rowOf']>
+    >;
     // 能力条的悬停长文不下发：四条乘六百个模型占了整个文件的六成，而对比页下方的表格就是明细
     const apt = Object.fromEntries(
       APTITUDES.map(({ id }) => {
-        const v = row.values[id];
+        const zhValue = rowsByLang[DEFAULT_LANG].values[id];
         const lean: CmpApt = [
-          v.fill == null ? null : Math.round(v.fill * 1000) / 1000,
-          v.literal,
-          v.selfReported ? 1 : 0,
+          zhValue.fill == null ? null : Math.round(zhValue.fill * 1000) / 1000,
+          zhValue.literal == null ? null : perLang((l) => rowsByLang[l].values[id].literal ?? zhValue.literal!),
+          zhValue.selfReported ? 1 : 0,
         ];
-        if (v.labelOverride) lean.push(v.labelOverride);
+        if (zhValue.labelOverride) {
+          lean.push(perLang((l) => rowsByLang[l].values[id].labelOverride ?? zhValue.labelOverride!));
+        }
         return [id, lean];
       }),
     ) as Record<AptitudeId, CmpApt>;
@@ -113,7 +130,7 @@ export function buildCompareData(snapshot: WorldSnapshot, spriteSlugs: ReadonlyS
       vendor: m.vendorId,
       kind: kindOf(m),
       date: m.releaseDate,
-      dateText: formatDate(m.releaseDate, m.releaseDatePrecision, DEFAULT_LANG),
+      dateText: perLang((l) => formatDate(m.releaseDate, m.releaseDatePrecision, l)),
       retired: m.retiredAt != null,
       cutoff: m.knowledgeCutoff,
       ctx: m.contextWindow != null && m.contextWindow > 0 ? m.contextWindow : null,
@@ -123,7 +140,7 @@ export function buildCompareData(snapshot: WorldSnapshot, spriteSlugs: ReadonlyS
       priceCached: m.pricing.cachedInputPerMTok,
       open: m.openWeights,
       license: m.license,
-      params: m.params.totalB == null ? null : formatParams(m, DEFAULT_LANG),
+      params: m.params.totalB == null ? null : perLang((l) => formatParams(m, l)),
       inputs: m.modalities.input,
       outputs: m.modalities.output,
       tool: m.capabilities.toolCall,
@@ -132,7 +149,7 @@ export function buildCompareData(snapshot: WorldSnapshot, spriteSlugs: ReadonlyS
       eci: m.benchmarks.eci,
       eciRank: rank,
       apt,
-      persona: personaFor(m, personaCtx),
+      persona: perLang((l) => personaFor(m, personaCtx, l)),
       sprite: spriteSlugs.has(m.slug),
       scale: TIER_SCALE[visualOf(m, rank, now, scales).size.tier],
       scores: scoresOf.get(m.id) ?? [],

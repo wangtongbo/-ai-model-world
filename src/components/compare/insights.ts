@@ -1,4 +1,6 @@
-import type { Modality } from '@/lib/types';
+import { DEFAULT_LANG, getDict, lt, type Lang } from '@/lib/i18n';
+import { libDict } from '@/lib/i18n/lib-dict';
+import { formatMinutes } from '@/lib/format';
 import type { CmpBench, CmpModel, CompareData } from './types';
 
 /**
@@ -23,6 +25,15 @@ export interface H2HRow {
   winners: number[];
   /** 有成绩的人数 */
   present: number;
+}
+
+/**
+ * 分数的显示文本。时长（minutes 量纲）的单位词各语言不同，而 compare-data.json
+ * 四语言共用一份、构建期写好的 text 是中文口径，所以按语言现算；
+ * 其余量纲（%、Elo、美元、倍率）写法与语言无关，直接用构建期的文本。
+ */
+export function cellText(bench: CmpBench, cell: H2HCell, lang: Lang): string {
+  return bench.unit === 'minutes' ? formatMinutes(cell.score, lang) : cell.text;
 }
 
 function barFraction(bench: CmpBench, score: number): number {
@@ -52,7 +63,7 @@ export function headToHead(data: CompareData, picked: CmpModel[]): H2HRow[] {
     }
   });
 
-  const order = new Map(data.categories.map((c, i) => [c, i]));
+  const order = new Map(data.categories.map((c, i) => [c.id, i]));
   const rows: H2HRow[] = [];
   for (const [idx, cells] of byBench) {
     const bench = data.benches[idx];
@@ -75,7 +86,8 @@ export function headToHead(data: CompareData, picked: CmpModel[]): H2HRow[] {
       Number(a.bench.superseded) - Number(b.bench.superseded) ||
       a.bench.priority - b.bench.priority ||
       b.bench.n - a.bench.n ||
-      a.bench.label.localeCompare(b.bench.label),
+      // 排序键固定用 zh，保证四种语言页面上的行序一致
+      lt(a.bench.label, DEFAULT_LANG).localeCompare(lt(b.bench.label, DEFAULT_LANG)),
   );
 }
 
@@ -125,21 +137,13 @@ export function cutoffMonth(cutoff: string | null): number | null {
   return Number(m[1]) * 12 + (m[2] ? Number(m[2]) - 1 : 0);
 }
 
-export function cutoffText(cutoff: string | null): string | null {
+export function cutoffText(cutoff: string | null, lang: Lang = DEFAULT_LANG): string | null {
   const month = cutoffMonth(cutoff);
   if (month == null) return null;
-  return `${Math.floor(month / 12)} 年 ${(month % 12) + 1} 月`;
+  return getDict(lang).unknown.monthOnly(Math.floor(month / 12), (month % 12) + 1);
 }
 
 // ─── 各自的特点 ─────────────────────────────────────────────────
-
-const MODALITY_ZH: Record<Modality, string> = {
-  text: '文字',
-  image: '图片',
-  audio: '声音',
-  video: '视频',
-  pdf: '文件',
-};
 
 function short(n: number): string {
   if (n >= 1_000_000) return `${+(n / 1_000_000).toFixed(2)}M`;
@@ -164,7 +168,8 @@ export interface Highlight {
  * 用归一化后的差距而不是原始分差，ALE-Bench 差 800 分和 GPQA 差 2 分才放得到一起比。
  * 规格类的门槛（便宜 15%、长 20%）是为了不把「1M 对 1.05M」这种噪声写成长处。
  */
-export function highlightsFor(rows: H2HRow[], picked: CmpModel[], col: number): Highlight[] {
+export function highlightsFor(rows: H2HRow[], picked: CmpModel[], col: number, lang: Lang = DEFAULT_LANG): Highlight[] {
+  const d = libDict[lang].insights;
   const me = picked[col];
   const others = picked.filter((_, i) => i !== col);
   if (others.length === 0) return [];
@@ -186,8 +191,8 @@ export function highlightsFor(rows: H2HRow[], picked: CmpModel[], col: number): 
     out.push({
       kind: 'bench',
       text: duel
-        ? `${w.r.bench.label} ${w.mine.text} 对 ${w.runner.text}`
-        : `${w.r.bench.label}第一：${w.mine.text}`,
+        ? d.benchWinVs(lt(w.r.bench.label, lang), cellText(w.r.bench, w.mine, lang), cellText(w.r.bench, w.runner, lang))
+        : d.benchWinFirst(lt(w.r.bench.label, lang), cellText(w.r.bench, w.mine, lang)),
     });
   }
 
@@ -202,7 +207,7 @@ export function highlightsFor(rows: H2HRow[], picked: CmpModel[], col: number): 
       .slice(0, 3 - benchWins.length);
     for (const r of solo) {
       const c = r.cells[col]!;
-      out.push({ kind: 'bench', text: `${r.bench.label}全榜第 ${c.rank}：${c.text}（${r.bench.n} 个模型）` });
+      out.push({ kind: 'bench', text: d.soloRank(lt(r.bench.label, lang), c.rank, cellText(r.bench, c, lang), r.bench.n) });
     }
   }
 
@@ -213,9 +218,7 @@ export function highlightsFor(rows: H2HRow[], picked: CmpModel[], col: number): 
       const off = Math.round((1 - me.priceOut / next) * 100);
       out.push({
         kind: 'spec',
-        text: duel
-          ? `输出价便宜 ${off}%：${usd(me.priceOut)} 对 ${usd(next)}`
-          : `输出价最低：${usd(me.priceOut)} / 百万 tokens`,
+        text: duel ? d.cheaperVs(off, usd(me.priceOut), usd(next)) : d.cheapestSolo(usd(me.priceOut)),
       });
     }
   }
@@ -226,7 +229,7 @@ export function highlightsFor(rows: H2HRow[], picked: CmpModel[], col: number): 
     if (me.ctx >= next * 1.2) {
       out.push({
         kind: 'spec',
-        text: duel ? `上下文更长：${short(me.ctx)} 对 ${short(next)}` : `上下文最长：${short(me.ctx)}`,
+        text: duel ? d.longerCtxVs(short(me.ctx), short(next)) : d.longestCtx(short(me.ctx)),
       });
     }
   }
@@ -237,7 +240,7 @@ export function highlightsFor(rows: H2HRow[], picked: CmpModel[], col: number): 
     if (me.maxOut >= next * 1.2) {
       out.push({
         kind: 'spec',
-        text: duel ? `单次输出更长：${short(me.maxOut)} 对 ${short(next)}` : `单次输出最长：${short(me.maxOut)}`,
+        text: duel ? d.longerOutVs(short(me.maxOut), short(next)) : d.longestOut(short(me.maxOut)),
       });
     }
   }
@@ -248,26 +251,26 @@ export function highlightsFor(rows: H2HRow[], picked: CmpModel[], col: number): 
     out.push({
       kind: 'spec',
       text: duel
-        ? `知识更新：截止 ${cutoffText(me.cutoff)}，对方 ${cutoffText(others[0].cutoff)}`
-        : `知识最新：截止 ${cutoffText(me.cutoff)}`,
+        ? d.newerCutoffVs(cutoffText(me.cutoff, lang)!, cutoffText(others[0].cutoff, lang)!)
+        : d.newestCutoff(cutoffText(me.cutoff, lang)!),
     });
   }
 
   if (me.open === true && others.some((o) => o.open === false)) {
-    out.push({ kind: 'spec', text: '开源权重，可以自己部署' });
+    out.push({ kind: 'spec', text: d.openWeightsText });
   }
 
   const extraIn = me.inputs.filter((x) => x !== 'text' && others.some((o) => !o.inputs.includes(x)));
   if (extraIn.length > 0) {
-    out.push({ kind: 'spec', text: `能读${extraIn.map((x) => MODALITY_ZH[x]).join('、')}${duel ? '，对方不行' : ''}` });
+    out.push({ kind: 'spec', text: d.canRead(extraIn.map((x) => d.modality[x] ?? x), duel) });
   }
   const extraOut = me.outputs.filter((x) => x !== 'text' && others.some((o) => !o.outputs.includes(x)));
   if (extraOut.length > 0) {
-    out.push({ kind: 'spec', text: `能生成${extraOut.map((x) => MODALITY_ZH[x]).join('、')}` });
+    out.push({ kind: 'spec', text: d.canGenerate(extraOut.map((x) => d.modality[x] ?? x)) });
   }
 
   if (me.reasoning === true && others.some((o) => o.reasoning === false)) {
-    out.push({ kind: 'spec', text: '有深度思考模式' });
+    out.push({ kind: 'spec', text: d.reasoningModeText });
   }
 
   // 还不满四条时，用只有它有的成绩补上。它们不算「赢」，所以写明出处而不写对比：
@@ -275,13 +278,14 @@ export function highlightsFor(rows: H2HRow[], picked: CmpModel[], col: number): 
   if (out.length < 4) {
     const own = rows
       .filter((r) => r.present === 1 && r.cells[col] && !r.bench.superseded)
-      .filter((r) => !out.some((h) => h.text.startsWith(r.bench.label)))
+      .filter((r) => !out.some((h) => h.text.startsWith(lt(r.bench.label, lang))))
       .sort((a, b) => a.bench.priority - b.bench.priority)
       .slice(0, 4 - out.length);
     for (const r of own) {
+      const label = lt(r.bench.label, lang).replace(d.selfReportSuffix, '');
       out.push({
         kind: 'bench',
-        text: `${r.bench.label.replace('（厂商自报）', '')} ${r.cells[col]!.text}${r.bench.selfReported ? '（官方公布）' : ''}`,
+        text: `${label} ${cellText(r.bench, r.cells[col]!, lang)}${r.bench.selfReported ? d.officialSuffix : ''}`,
       });
     }
   }
@@ -297,21 +301,22 @@ export interface Preset {
 }
 
 /** 推荐对阵，全部从当前快照现算：数据一更新，推荐跟着换人 */
-export function presetsOf(data: CompareData): Preset[] {
+export function presetsOf(data: CompareData, lang: Lang = DEFAULT_LANG): Preset[] {
+  const d = libDict[lang].insights;
   const alive = data.models.filter((m) => !m.retired && m.eciRank != null);
   const byRank = [...alive].sort((a, b) => a.eciRank! - b.eciRank!);
   const first = (pred: (m: CmpModel) => boolean) => byRank.find(pred);
   const out: Preset[] = [];
 
-  if (byRank.length >= 2) out.push({ label: '综合智力前两名', slugs: [byRank[0].slug, byRank[1].slug] });
+  if (byRank.length >= 2) out.push({ label: d.presetTop2, slugs: [byRank[0].slug, byRank[1].slug] });
 
   const west = first((m) => data.vendors[m.vendor]?.continent === 'west');
   const east = first((m) => data.vendors[m.vendor]?.continent === 'east');
-  if (west && east) out.push({ label: '国外第一对国内第一', slugs: [west.slug, east.slug] });
+  if (west && east) out.push({ label: d.presetEastWest, slugs: [west.slug, east.slug] });
 
   const closed = first((m) => m.open === false);
   const open = first((m) => m.open === true);
-  if (closed && open) out.push({ label: '闭源第一对开源第一', slugs: [closed.slug, open.slug] });
+  if (closed && open) out.push({ label: d.presetOpenClosed, slugs: [closed.slug, open.slug] });
 
   // 最近 30 天发布、来自不同厂商的两个大杯：新模型刚发布时最常被问的就是这一对
   const latest = [...data.models]
@@ -323,7 +328,7 @@ export function presetsOf(data: CompareData): Preset[] {
     newest.push(m);
     if (newest.length === 2) break;
   }
-  if (newest.length === 2) out.push({ label: '最新发布', slugs: newest.map((m) => m.slug) });
+  if (newest.length === 2) out.push({ label: d.presetNewest, slugs: newest.map((m) => m.slug) });
 
   return out;
 }

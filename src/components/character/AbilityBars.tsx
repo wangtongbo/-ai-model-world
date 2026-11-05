@@ -1,4 +1,5 @@
-import { APTITUDES, type AptitudeRow } from '@/lib/aptitude';
+import { aptitudesFor, type AptitudeRow } from '@/lib/aptitude';
+import { getDict, type Lang } from '@/lib/i18n';
 
 /**
  * 四条能力横条。
@@ -74,16 +75,18 @@ function Bar({
 
 export interface AbilityBarsProps {
   row: AptitudeRow;
+  lang: Lang;
   /** 卡片上用紧凑版，详情页用大号 */
   compact?: boolean;
   /** 当前排序依据的那一条会被高亮，给用户一个「我正在按什么排」的锚点 */
   highlight?: string | null;
 }
 
-export function AbilityBars({ row, compact = false, highlight = null }: AbilityBarsProps) {
+export function AbilityBars({ row, lang, compact = false, highlight = null }: AbilityBarsProps) {
+  const dict = getDict(lang);
   return (
     <div className={compact ? 'flex flex-col gap-[3px]' : 'flex flex-col gap-1.5'}>
-      {APTITUDES.map((apt) => {
+      {aptitudesFor(lang).map((apt) => {
         const v = row.values[apt.id];
         const on = highlight === apt.id;
         return (
@@ -109,7 +112,7 @@ export function AbilityBars({ row, compact = false, highlight = null }: AbilityB
               } leading-none`}
               style={{ color: v.fill == null ? 'rgb(255 255 255 / 0.3)' : 'var(--color-parchment)' }}
             >
-              {v.literal ?? '暂无'}
+              {v.literal ?? dict.ui.ability.none}
               {/*
                 厂商自报的分数必须当场标出来。悬停提示里写了不算数——
                 一屏几十张卡片，没人会去悬停，而 95（自报）和 78（第三方实测）
@@ -120,7 +123,7 @@ export function AbilityBars({ row, compact = false, highlight = null }: AbilityB
                   className="shrink-0 text-[11px] leading-none"
                   style={{ color: 'rgb(255 255 255 / 0.4)' }}
                 >
-                  自报
+                  {dict.ui.ability.selfReported}
                 </span>
               )}
             </span>

@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { VendorCrest } from '@/components/character/VendorCrest';
+import { profileFor } from '@/data/vendor-registry';
 import { runSearch, type SearchIndex, type SearchResult } from '@/lib/search';
-import { DEFAULT_LANG, getDict } from '@/lib/i18n';
+import { getDict, langLink, type Dict, type Lang } from '@/lib/i18n';
 import { asset } from '@/lib/asset';
 
 /**
@@ -59,31 +60,39 @@ interface Row {
   group?: string;
 }
 
+/**
+ * 厂商显示名。索引里只有中文名（单文件、四语言概念切片都在词表里），
+ * 非中文版按产品决策统一用注册表的国际通用名；zh 保持索引原文。
+ */
+function vendorNameOf(id: string, zhName: string, lang: Lang): string {
+  return lang === 'zh' ? zhName : profileFor(id).nameEn;
+}
+
 /** 把三类命中拍平成一维，键盘上下键才好走 */
-function toRows(r: SearchResult, dict: ReturnType<typeof getDict>): Row[] {
+function toRows(r: SearchResult, dict: Dict, lang: Lang): Row[] {
   const rows: Row[] = [];
 
   r.shortcuts.forEach((s, i) => {
     rows.push({
       key: `s${i}`,
-      href: s.href,
+      href: langLink(lang, s.href),
       title: s.label,
       note: s.hint,
-      tail: s.count != null ? `${s.count} 个` : '看榜单',
+      tail: s.count != null ? dict.ui.search.tailCount(s.count) : dict.ui.search.tailTrack,
       crest: s.vendor ? { motif: s.vendor.m, accent: s.vendor.a } : undefined,
-      group: i === 0 ? '按能力找' : undefined,
+      group: i === 0 ? dict.ui.search.groupAbility : undefined,
     });
   });
 
   r.vendors.forEach((v, i) => {
     rows.push({
       key: `v${v.vendor.i}`,
-      href: v.href,
-      title: v.vendor.n,
-      note: `${dict.continent[v.vendor.c]}厂商`,
-      tail: `${v.vendor.t} 个模型`,
+      href: langLink(lang, v.href),
+      title: vendorNameOf(v.vendor.i, v.vendor.n, lang),
+      note: dict.ui.search.vendorNote(dict.continent[v.vendor.c]),
+      tail: dict.ui.search.vendorTail(v.vendor.t),
       crest: { motif: v.vendor.m, accent: v.vendor.a },
-      group: i === 0 ? '厂商' : undefined,
+      group: i === 0 ? dict.ui.search.groupVendors : undefined,
     });
   });
 
@@ -91,20 +100,24 @@ function toRows(r: SearchResult, dict: ReturnType<typeof getDict>): Row[] {
     const kind = m.model.k ? dict.kind.label[m.model.k] : dict.kind.unknown;
     rows.push({
       key: `m${m.model.s}`,
-      href: m.href,
+      href: langLink(lang, m.href),
       title: m.model.n,
-      note: `${m.vendor.n} · ${kind}${m.model.x ? ' · 已退役' : ''}`,
-      tail: m.model.r != null ? `智力 #${m.model.r}` : undefined,
+      note: dict.ui.search.modelNote(
+        vendorNameOf(m.vendor.i, m.vendor.n, lang),
+        kind,
+        m.model.x ? dict.status.retired : null,
+      ),
+      tail: m.model.r != null ? dict.ui.search.modelRank(m.model.r) : undefined,
       crest: { motif: m.vendor.m, accent: m.vendor.a },
-      group: i === 0 ? '模型' : undefined,
+      group: i === 0 ? dict.ui.search.groupModels : undefined,
     });
   });
 
   return rows;
 }
 
-export function GlobalSearch() {
-  const dict = getDict(DEFAULT_LANG);
+export function GlobalSearch({ lang }: { lang: Lang }) {
+  const dict = getDict(lang);
   const [index, setIndex] = useState<SearchIndex | null>(cachedIndex);
   const [q, setQ] = useState('');
   /** 真正拿去查的关键词，比 q 慢半拍 */
@@ -128,14 +141,14 @@ export function GlobalSearch() {
     return () => clearTimeout(t);
   }, [q, composing]);
 
-  const result = useMemo(() => runSearch(index, term), [index, term]);
-  const rows = useMemo(() => toRows(result, dict), [result, dict]);
+  const result = useMemo(() => runSearch(index, term, lang), [index, term, lang]);
+  const rows = useMemo(() => toRows(result, dict, lang), [result, dict, lang]);
   const hasRows = rows.length > 0;
   // 改关键词时 onChange 会把游标归零；这里再夹一次，防止索引刚加载完导致行数变少
   const active = Math.min(cursor, Math.max(0, rows.length - 1));
   /** 已经敲了新字但还没到防抖点。此时旧结果继续挂着，就是不能说「没有匹配」 */
   const pending = term.trim() !== q.trim();
-  const allHref = `/leaderboard/all/?q=${encodeURIComponent(q.trim())}`;
+  const allHref = langLink(lang, `/leaderboard/all/?q=${encodeURIComponent(q.trim())}`);
 
   // 点框外收起。用 pointerdown 而不是 click，否则点结果行时会先收起再丢掉这一下点击
   useEffect(() => {
@@ -219,8 +232,8 @@ export function GlobalSearch() {
           onCompositionStart={() => setComposing(true)}
           onCompositionEnd={() => setComposing(false)}
           onKeyDown={onKeyDown}
-          placeholder="搜模型、厂商、多模态…"
-          aria-label="搜索模型、厂商或能力"
+          placeholder={dict.ui.search.placeholder}
+          aria-label={dict.ui.search.ariaLabel}
           aria-expanded={showPanel}
           aria-controls="global-search-results"
           role="combobox"
@@ -234,24 +247,26 @@ export function GlobalSearch() {
           role="listbox"
           className="pixel-panel-dark absolute left-0 top-full z-50 mt-1 max-h-[70vh] w-full overflow-y-auto p-1 text-left sm:left-auto sm:right-0 sm:w-[26rem]"
         >
-          {!index && <div className="px-2 py-3 text-[13px] text-[var(--color-ghost)]">正在载入索引…</div>}
+          {!index && (
+            <div className="px-2 py-3 text-[13px] text-[var(--color-ghost)]">{dict.ui.search.loading}</div>
+          )}
 
           {index && !hasRows && pending && (
-            <div className="px-2 py-3 text-[13px] text-[var(--color-ghost)]">搜索中…</div>
+            <div className="px-2 py-3 text-[13px] text-[var(--color-ghost)]">{dict.ui.search.searching}</div>
           )}
 
           {index && !hasRows && !pending && (
             <div className="px-2 py-3 text-[13px] text-[var(--color-ghost)]">
-              没有匹配的模型、厂商或能力。试试「多模态」「开源」「国内」，或者直接
+              {dict.ui.search.noResult}
               <Link
                 href={allHref}
                 data-nav="all"
                 onClick={dismiss}
                 className="ml-1 text-[var(--color-gold)] underline"
               >
-                去总表搜
+                {dict.ui.search.noResultLink}
               </Link>
-              。
+              {dict.ui.search.noResultEnd}
             </div>
           )}
 
@@ -300,7 +315,7 @@ export function GlobalSearch() {
               onClick={dismiss}
               className="mt-1 block w-full border-t border-white/10 px-2 py-2 text-left text-[13px] text-[var(--color-parchment-dim)] hover:text-[var(--color-gold)]"
             >
-              在总表里看全部 {result.modelTotal} 个匹配 →
+              {dict.ui.search.allMatches(result.modelTotal)}
             </Link>
           )}
         </div>

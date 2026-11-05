@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { VendorCrest } from '@/components/character/VendorCrest';
-import { DEFAULT_LANG, getDict } from '@/lib/i18n';
+import { getDict, langLink, type Dict, type Lang } from '@/lib/i18n';
 import { KINDS } from '@/lib/kind';
 import { filterFromParams, filterToParams, makePredicate, EMPTY_FILTER, type FilterState } from './filters';
 import { ModelFilters } from './ModelFilters';
-import type { AllRow, AllTableData } from './types';
+import type { AllRow, AllTableData, LeanVendor } from './types';
 import { useUrlQuery } from './useUrlQuery';
 
 /**
@@ -21,7 +21,6 @@ import { useUrlQuery } from './useUrlQuery';
 type SortKey = 'name' | 'vendor' | 'region' | 'kind' | 'date' | 'open' | 'ctx' | 'price' | 'eci' | 'code' | 'n';
 type Dir = 'asc' | 'desc';
 
-const dict = getDict(DEFAULT_LANG);
 /** 类型列按 KINDS 的顺序排（文本 → 视觉 → … → 语音），不按中文字符排 */
 const KIND_ORDER = new Map(KINDS.map((k, i) => [k, i]));
 
@@ -38,26 +37,36 @@ interface Column {
   align?: 'left' | 'right';
 }
 
-const COLUMNS: Column[] = [
-  { key: 'name', label: '模型', defaultDir: 'asc' },
-  { key: 'vendor', label: '厂商', defaultDir: 'asc', secondary: true },
-  { key: 'region', label: '地区', defaultDir: 'asc', secondary: true },
-  { key: 'kind', label: dict.kind.filterLabel, defaultDir: 'asc', secondary: true },
-  { key: 'date', label: '发布', defaultDir: 'desc', secondary: true },
-  { key: 'open', label: '开源', defaultDir: 'desc', secondary: true },
-  { key: 'ctx', label: '上下文', defaultDir: 'desc', secondary: true, align: 'right' },
-  { key: 'price', label: '输出价格', defaultDir: 'asc', align: 'right' },
-  { key: 'eci', label: '综合智力', defaultDir: 'desc', align: 'right' },
-  { key: 'code', label: '编程', defaultDir: 'desc', align: 'right' },
-  { key: 'n', label: '参赛榜数', defaultDir: 'desc', secondary: true, align: 'right' },
-];
+function columnsFor(dict: Dict): Column[] {
+  return [
+    { key: 'name', label: dict.ui.allTable.col.model, defaultDir: 'asc' },
+    { key: 'vendor', label: dict.ui.allTable.col.vendor, defaultDir: 'asc', secondary: true },
+    { key: 'region', label: dict.ui.allTable.col.region, defaultDir: 'asc', secondary: true },
+    { key: 'kind', label: dict.kind.filterLabel, defaultDir: 'asc', secondary: true },
+    { key: 'date', label: dict.ui.allTable.col.date, defaultDir: 'desc', secondary: true },
+    { key: 'open', label: dict.ui.allTable.col.open, defaultDir: 'desc', secondary: true },
+    { key: 'ctx', label: dict.ui.allTable.col.ctx, defaultDir: 'desc', secondary: true, align: 'right' },
+    { key: 'price', label: dict.ui.allTable.col.price, defaultDir: 'asc', align: 'right' },
+    { key: 'eci', label: dict.ui.allTable.col.eci, defaultDir: 'desc', align: 'right' },
+    { key: 'code', label: dict.ui.allTable.col.code, defaultDir: 'desc', align: 'right' },
+    { key: 'n', label: dict.ui.allTable.col.n, defaultDir: 'desc', secondary: true, align: 'right' },
+  ];
+}
 
-export function AllModelsTable({ data }: { data: AllTableData }) {
+/** 厂商显示名：zh 用中文名，en/ja/ko 用国际通用名。 */
+function vendorLabel(v: LeanVendor | undefined, lang: Lang): string | undefined {
+  if (!v) return undefined;
+  return lang === 'zh' ? v.nameZh : v.nameEn;
+}
+
+export function AllModelsTable({ data, lang }: { data: AllTableData; lang: Lang }) {
+  const dict = getDict(lang);
+  const columns = useMemo(() => columnsFor(dict), [dict]);
   const [params, update] = useUrlQuery();
   const filter = useMemo(() => (params ? filterFromParams(params) : EMPTY_FILTER), [params]);
   const showAll = params?.get('all') === '1';
 
-  const sortKey = (COLUMNS.find((c) => c.key === params?.get('sort'))?.key ?? DEFAULT_SORT.key) as SortKey;
+  const sortKey = (columns.find((c) => c.key === params?.get('sort'))?.key ?? DEFAULT_SORT.key) as SortKey;
   const dir: Dir = params?.get('dir') === 'asc' ? 'asc' : params?.get('dir') === 'desc' ? 'desc' : DEFAULT_SORT.dir;
 
   const vendorMap = useMemo(() => new Map(data.vendors.map((v) => [v.id, v])), [data.vendors]);
@@ -84,7 +93,10 @@ export function AllModelsTable({ data }: { data: AllTableData }) {
         case 'name':
           return str(ma.name, mb.name);
         case 'vendor':
-          return str(vendorMap.get(ma.vendor)?.nameZh ?? ma.vendor, vendorMap.get(mb.vendor)?.nameZh ?? mb.vendor);
+          return str(
+            vendorLabel(vendorMap.get(ma.vendor), lang) ?? ma.vendor,
+            vendorLabel(vendorMap.get(mb.vendor), lang) ?? mb.vendor,
+          );
         case 'region':
           return str(vendorMap.get(ma.vendor)?.continent ?? 'west', vendorMap.get(mb.vendor)?.continent ?? 'west');
         case 'kind':
@@ -109,7 +121,7 @@ export function AllModelsTable({ data }: { data: AllTableData }) {
       }
     };
     return kept.sort((a, b) => cmp(a, b) || byName(a, b));
-  }, [data, predicate, sortKey, dir, vendorMap]);
+  }, [data, predicate, sortKey, dir, vendorMap, lang]);
 
   const shown = showAll ? rows : rows.slice(0, DEFAULT_LIMIT);
 
@@ -122,13 +134,20 @@ export function AllModelsTable({ data }: { data: AllTableData }) {
 
   return (
     <div>
-      <ModelFilters value={filter} onChange={setFilter} vendors={data.vendors} models={data.models} matched={rows.length} />
+      <ModelFilters
+        value={filter}
+        onChange={setFilter}
+        vendors={data.vendors}
+        models={data.models}
+        matched={rows.length}
+        lang={lang}
+      />
 
       <div className="pixel-panel-dark mt-3 overflow-x-auto">
         <table className="w-full border-collapse text-[14px]">
           <thead>
             <tr className="border-b-2 border-[var(--color-ink)] text-[13px] text-[var(--color-ghost)]">
-              {COLUMNS.map((c) => {
+              {columns.map((c) => {
                 const on = c.key === sortKey;
                 return (
                   <th
@@ -158,8 +177,8 @@ export function AllModelsTable({ data }: { data: AllTableData }) {
           <tbody className="divide-y divide-white/10">
             {shown.length === 0 && (
               <tr>
-                <td colSpan={COLUMNS.length} className="px-3 py-6 text-center text-[14px] text-[var(--color-ghost)]">
-                  没有符合条件的模型。
+                <td colSpan={columns.length} className="px-3 py-6 text-center text-[14px] text-[var(--color-ghost)]">
+                  {dict.ui.allTable.empty}
                 </td>
               </tr>
             )}
@@ -170,16 +189,18 @@ export function AllModelsTable({ data }: { data: AllTableData }) {
                 <tr key={m.id} className="hover:bg-white/5">
                   <td className="max-w-[8rem] px-1.5 py-1.5 pl-2 sm:max-w-[14rem] sm:px-2 sm:pl-3">
                     <Link
-                      href={`/model/${m.slug}/`}
+                      href={langLink(lang, `/model/${m.slug}/`)}
                       className="flex items-center gap-1.5 text-[var(--color-parchment)] hover:text-[var(--color-gold)]"
                     >
                       <VendorCrest motif={v?.motif ?? 'wanderer'} accentColor={v?.accent ?? '#8a8a8a'} size={12} />
                       <span className="truncate">{m.name}</span>
-                      {m.retired && <span className="shrink-0 text-[13px] text-[var(--color-ghost)]">已退役</span>}
+                      {m.retired && (
+                        <span className="shrink-0 text-[13px] text-[var(--color-ghost)]">{dict.status.retired}</span>
+                      )}
                     </Link>
                   </td>
                   <td className="hidden whitespace-nowrap px-2 py-1.5 text-[var(--color-parchment-dim)] md:table-cell">
-                    {v?.nameZh ?? m.vendor}
+                    {vendorLabel(v, lang) ?? m.vendor}
                   </td>
                   <td className="hidden whitespace-nowrap px-2 py-1.5 md:table-cell">
                     <span
@@ -187,7 +208,7 @@ export function AllModelsTable({ data }: { data: AllTableData }) {
                         color: v?.continent === 'east' ? 'var(--color-east)' : 'var(--color-west)',
                       }}
                     >
-                      {v?.continent === 'east' ? '国内' : '国外'}
+                      {v?.continent === 'east' ? dict.continent.east : dict.continent.west}
                     </span>
                   </td>
                   <td className="hidden whitespace-nowrap px-2 py-1.5 md:table-cell">
@@ -196,45 +217,49 @@ export function AllModelsTable({ data }: { data: AllTableData }) {
                         {dict.kind.label[m.kind]}
                       </span>
                     ) : (
-                      <Cell v={null} />
+                      <Cell noData={dict.unknown.noData} v={null} />
                     )}
                   </td>
                   <td className="hidden whitespace-nowrap px-2 py-1.5 text-[var(--color-parchment-dim)] md:table-cell">
                     {r.dateText}
                   </td>
                   <td className="hidden whitespace-nowrap px-2 py-1.5 md:table-cell">
-                    <Cell v={m.open == null ? null : m.open ? '开源' : '闭源'} />
+                    <Cell noData={dict.unknown.noData} v={m.open == null ? null : m.open ? dict.ui.allTable.open : dict.ui.allTable.closed} />
                   </td>
                   <td className="hidden whitespace-nowrap px-2 py-1.5 text-right tabular-nums md:table-cell">
-                    <Cell v={r.ctxText} />
+                    <Cell noData={dict.unknown.noData} v={r.ctxText} />
                   </td>
                   <td className="whitespace-nowrap px-1.5 py-1.5 text-right tabular-nums sm:px-2">
-                    <Cell v={r.priceText} />
+                    <Cell noData={dict.unknown.noData} v={r.priceText} />
                   </td>
                   <td className="whitespace-nowrap px-1.5 py-1.5 text-right tabular-nums sm:px-2">
                     {r.eci != null ? (
-                      <span title={`Epoch Capabilities Index ${r.eci.toFixed(1)}，全球第 ${r.eciRank} 名`}>
+                      <span title={dict.ui.allTable.eciTitle(r.eci.toFixed(1), r.eciRank)}>
                         <span className="text-[var(--color-parchment)]">{r.eci.toFixed(1)}</span>
                         <span className="font-pixel ml-1.5 hidden text-[12px] text-[var(--color-gold)] sm:inline">
                           #{r.eciRank}
                         </span>
                       </span>
                     ) : (
-                      <Cell v={null} />
+                      <Cell noData={dict.unknown.noData} v={null} />
                     )}
                   </td>
                   <td className="whitespace-nowrap px-1.5 py-1.5 pr-2 text-right sm:px-2">
                     {r.code ? (
                       <span title={r.code.title} className="cursor-help text-[var(--color-parchment)]">
                         {r.code.verdict}
-                        {r.code.self && <span className="ml-1 text-[13px] text-[var(--color-ghost)]">自报</span>}
+                        {r.code.self && (
+                          <span className="ml-1 text-[13px] text-[var(--color-ghost)]">
+                            {dict.ui.leaderboard.selfReport}
+                          </span>
+                        )}
                       </span>
                     ) : (
-                      <Cell v={null} />
+                      <Cell noData={dict.unknown.noData} v={null} />
                     )}
                   </td>
                   <td className="hidden whitespace-nowrap px-2 py-1.5 pr-3 text-right tabular-nums text-[var(--color-parchment-dim)] md:table-cell">
-                    {r.n > 0 ? r.n : <Cell v={null} />}
+                    {r.n > 0 ? r.n : <Cell noData={dict.unknown.noData} v={null} />}
                   </td>
                 </tr>
               );
@@ -250,7 +275,7 @@ export function AllModelsTable({ data }: { data: AllTableData }) {
             onClick={() => update({ all: showAll ? null : '1' })}
             className="pixel-button px-4 py-1.5 text-[13px] text-[var(--color-ink)]"
           >
-            {showAll ? `只看前 ${DEFAULT_LIMIT} 个` : `展开全部 ${rows.length} 个`}
+            {showAll ? dict.ui.allTable.collapse(DEFAULT_LIMIT) : dict.ui.allTable.expand(rows.length)}
           </button>
         </div>
       )}
@@ -259,10 +284,10 @@ export function AllModelsTable({ data }: { data: AllTableData }) {
 }
 
 /** 空值统一写成一根短横，颜色压暗——它是「没有数据」，不是一个值 */
-function Cell({ v }: { v: string | null }) {
+function Cell({ v, noData }: { v: string | null; noData: string }) {
   if (v == null) {
     return (
-      <span className="text-white/25" title="暂无数据">
+      <span className="text-white/25" title={noData}>
         —
       </span>
     );

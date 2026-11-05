@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { DEFAULT_LANG, getDict, htmlLang } from '@/lib/i18n';
-import { SiteFooter } from '@/components/world/SiteFooter';
 import { asset } from '@/lib/asset';
 
 const dict = getDict(DEFAULT_LANG);
@@ -36,10 +35,12 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       <head>
         <style dangerouslySetInnerHTML={{ __html: fontFace }} />
       </head>
-      <body className="min-h-full">
-        {children}
-        <SiteFooter />
-      </body>
+      {/*
+        页脚不在这里渲染：根 layout 拿不到 [lang] 段的参数，而非中文版的页脚
+        是另一种（简化）渲染。各页面正文组件（src/components/pages/）各自
+        在 <main> 之后渲染 <SiteFooter lang={lang} />，中文版 DOM 与之前一致。
+      */}
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }

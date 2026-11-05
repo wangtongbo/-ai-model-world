@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useSyncExternalStore } from 'react';
+import { getDict, langLink, type Lang } from '@/lib/i18n';
 import { COMPARE_STORAGE_KEY, MAX_PICK, parsePicked } from './storage';
 
 function VsIcon() {
@@ -34,7 +35,8 @@ function snapshot(): string | null {
  * 是真链接而不是按钮加 `router.push`——作为 B 站 Toy 发布时，站内跳转全靠
  * 打包脚本注入的点击兜底改写地址，`router.push` 绕过了它就会落到 404。
  */
-export function CompareButton({ slug, className }: { slug: string; className: string }) {
+export function CompareButton({ slug, lang, className }: { slug: string; lang: Lang; className: string }) {
+  const dict = getDict(lang);
   const raw = useSyncExternalStore(subscribe, snapshot, () => null);
   const others = useMemo(
     () => parsePicked(raw).filter((s) => s !== slug).slice(-(MAX_PICK - 1)),
@@ -42,9 +44,9 @@ export function CompareButton({ slug, className }: { slug: string; className: st
   );
 
   return (
-    <Link href={`/compare/?m=${[...others, slug].join(',')}`} className={className}>
+    <Link href={langLink(lang, `/compare/?m=${[...others, slug].join(',')}`)} className={className}>
       <VsIcon />
-      {others.length > 0 ? `和已选的 ${others.length} 个对比` : '加入对比'}
+      {others.length > 0 ? dict.ui.compareButton.withOthers(others.length) : dict.ui.compareButton.add}
     </Link>
   );
 }

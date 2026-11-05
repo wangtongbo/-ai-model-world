@@ -21,6 +21,8 @@
 import { continentForCountry, profileFor } from '../data/vendor-registry';
 import { kindOf, type ModelKind } from './kind';
 import type { Continent, WorldSnapshot } from './types';
+import { libDict, type LibSearchConcept, type LibTrackShortcut } from './i18n/lib-dict';
+import { DEFAULT_LANG, LANGS, type Lang } from './i18n/types';
 
 /* ────────────────────────────── 索引 ────────────────────────────── */
 
@@ -57,6 +59,10 @@ export interface SearchIndex {
   generatedAt: string;
   vendors: IndexVendor[];
   models: IndexModel[];
+  /** 四语言概念词表。索引仍是单文件，客户端按语言取切片 */
+  concepts: Record<Lang, LibSearchConcept[]>;
+  /** 四语言赛道快捷入口 */
+  trackShortcuts: Record<Lang, LibTrackShortcut[]>;
 }
 
 export function buildSearchIndex(snapshot: WorldSnapshot): SearchIndex {
@@ -99,7 +105,16 @@ export function buildSearchIndex(snapshot: WorldSnapshot): SearchIndex {
     ...(m.retiredAt ? { x: 1 as const } : {}),
   }));
 
-  return { generatedAt: snapshot.generatedAt, vendors, models };
+  const concepts = Object.fromEntries(LANGS.map((l) => [l, libDict[l].search.concepts])) as Record<
+    Lang,
+    LibSearchConcept[]
+  >;
+  const trackShortcuts = Object.fromEntries(LANGS.map((l) => [l, libDict[l].search.trackShortcuts])) as Record<
+    Lang,
+    LibTrackShortcut[]
+  >;
+
+  return { generatedAt: snapshot.generatedAt, vendors, models, concepts, trackShortcuts };
 }
 
 /* ────────────────────────────── 概念词 ────────────────────────────── */
@@ -107,148 +122,31 @@ export function buildSearchIndex(snapshot: WorldSnapshot): SearchIndex {
 /**
  * 能落成总表筛选参数的概念。每个维度最多选一个，可以互相叠加，也可以再叠一个厂商。
  * `keywords` 全部写成折叠后的形式（小写、无分隔符），匹配时直接比。
+ *
+ * 词表在 lib-dict 的 search section，每种语言一张表：词不同，
+ * 指向的筛选参数（dimension + value）各语言完全一致。
  */
-export type ConceptDimension = 'kind' | 'weights' | 'region';
+export type ConceptDimension = LibSearchConcept['dimension'];
+export type Concept = LibSearchConcept;
 
-export interface Concept {
-  id: string;
-  dimension: ConceptDimension;
-  /** 写进 URL 的参数值 */
-  value: string;
-  label: string;
-  /** 结果行的副标题，说清这一类是怎么判定的 */
-  hint: string;
-  keywords: string[];
+/** 按语言取概念词表。zh 与改造前逐字一致。 */
+export function conceptsFor(lang: Lang = DEFAULT_LANG): readonly Concept[] {
+  return libDict[lang].search.concepts;
 }
 
-export const CONCEPTS: readonly Concept[] = [
-  {
-    id: 'multimodal',
-    dimension: 'kind',
-    value: 'multimodal',
-    label: '多模态',
-    hint: '除纯文本以外的全部：能看图、能听声、能出图出视频',
-    keywords: ['多模态', '多模', 'multimodal', 'mm', '非纯文本'],
-  },
-  {
-    id: 'vision',
-    dimension: 'kind',
-    value: 'vision',
-    label: '视觉',
-    hint: '能看图或看视频，输出文字',
-    keywords: ['视觉', '看图', '识图', '图片理解', '图像理解', '读图', 'vision', 'vl', 'vlm'],
-  },
-  {
-    id: 'omni',
-    dimension: 'kind',
-    value: 'omni',
-    label: '全模态',
-    hint: '既能听声音又能看画面',
-    keywords: ['全模态', '又听又看', 'omni'],
-  },
-  {
-    id: 'image-gen',
-    dimension: 'kind',
-    value: 'image-gen',
-    label: '图像生成',
-    hint: '输出里含图片',
-    keywords: ['图像生成', '文生图', '画图', '出图', '生图', '绘图', '生成图片', 'imagegen', 'texttoimage', 't2i'],
-  },
-  {
-    id: 'video-gen',
-    dimension: 'kind',
-    value: 'video-gen',
-    label: '视频生成',
-    hint: '输出里含视频',
-    keywords: ['视频生成', '文生视频', '出视频', '生成视频', 'videogen', 'texttovideo', 't2v'],
-  },
-  {
-    id: 'speech',
-    dimension: 'kind',
-    value: 'speech',
-    label: '语音',
-    hint: '语音识别、语音合成，或只听不看的语音对话',
-    keywords: ['语音', '声音', '音频', '语音识别', '语音合成', '转写', 'speech', 'audio', 'tts', 'asr', 'voice'],
-  },
-  {
-    id: 'text',
-    dimension: 'kind',
-    value: 'text',
-    label: '文本',
-    hint: '只读文字、只出文字',
-    keywords: ['文本', '纯文本', '文字', 'text', 'llm'],
-  },
-  {
-    id: 'open',
-    dimension: 'weights',
-    value: 'open',
-    label: '开源',
-    hint: '权重公开，可以自己部署',
-    keywords: ['开源', '开放权重', '权重公开', '可自部署', 'open', 'openweights', 'opensource'],
-  },
-  {
-    id: 'closed',
-    dimension: 'weights',
-    value: 'closed',
-    label: '闭源',
-    hint: '权重不公开，只能走 API',
-    keywords: ['闭源', '不开源', '闭源模型', 'closed', 'proprietary'],
-  },
-  {
-    id: 'east',
-    dimension: 'region',
-    value: 'east',
-    label: '国内',
-    hint: '总部在中国（含港澳台）的厂商',
-    keywords: ['国内', '国产', '中国', '大陆', 'china', 'chinese', 'domestic'],
-  },
-  {
-    id: 'west',
-    dimension: 'region',
-    value: 'west',
-    label: '国外',
-    hint: '总部在中国以外的厂商',
-    keywords: ['国外', '海外', '外国', 'foreign', 'overseas', 'us'],
-  },
-];
+export const CONCEPTS: readonly Concept[] = conceptsFor(DEFAULT_LANG);
 
 /**
  * 排行榜赛道的快捷入口。这些是「谁最强」类的问题，答案在排行榜不在总表，
  * 所以它们只给链接、不参与和厂商的组合。id 用的是 scores.ts 里写死的四条实用指标。
  */
-export interface TrackShortcut {
-  id: string;
-  label: string;
-  hint: string;
-  keywords: string[];
+export type TrackShortcut = LibTrackShortcut;
+
+export function trackShortcutsFor(lang: Lang = DEFAULT_LANG): readonly TrackShortcut[] {
+  return libDict[lang].search.trackShortcuts;
 }
 
-export const TRACK_SHORTCUTS: readonly TrackShortcut[] = [
-  {
-    id: 'context',
-    label: '上下文最长',
-    hint: '按一次能读进去多少字排',
-    keywords: ['上下文', '长上下文', '记性', '记忆', '窗口', 'context', 'longcontext'],
-  },
-  {
-    id: 'cheapest',
-    label: '最便宜',
-    hint: '按输出单价从低到高排',
-    keywords: ['便宜', '最便宜', '省钱', '低价', '白菜价', 'cheap', 'cheapest', 'price'],
-  },
-  {
-    id: 'value',
-    label: '最划算',
-    hint: '按同等智力下的价格优势排',
-    keywords: ['划算', '性价比', '值', 'value'],
-  },
-  {
-    id: 'newest',
-    label: '最新发布',
-    hint: '按发布日期从新到旧排',
-    keywords: ['最新', '新发布', '最近', '刚出', 'newest', 'latest', 'new'],
-  },
-];
+export const TRACK_SHORTCUTS: readonly TrackShortcut[] = trackShortcutsFor(DEFAULT_LANG);
 
 /* ────────────────────────────── 查询 ────────────────────────────── */
 
@@ -346,10 +244,18 @@ const PARAM_OF: Record<ConceptDimension, string> = {
  * 1. **按词理解**——把每个 token 尝试解释成概念或厂商，全部解释得通就给一条组合筛选。
  * 2. **按串匹配**——整串去撞模型名、slug、厂商名。
  * 两条路互不干扰，「智谱」既会出现在厂商命中里，也可能参与组合。
+ *
+ * 概念词表按 `lang` 取：优先用索引里带的切片（构建期四语言都写进去了），
+ * 旧索引没有 concepts 字段时回落到 lib-dict，行为不变。
  */
-export function runSearch(index: SearchIndex | null, raw: string): SearchResult {
+export function runSearch(index: SearchIndex | null, raw: string, lang: Lang = DEFAULT_LANG): SearchResult {
   const query = raw.trim();
   if (!index || query === '') return EMPTY;
+
+  const concepts: readonly Concept[] = index.concepts?.[lang] ?? libDict[lang].search.concepts;
+  const trackShortcuts: readonly TrackShortcut[] =
+    index.trackShortcuts?.[lang] ?? libDict[lang].search.trackShortcuts;
+  const hintSep = libDict[lang].search.hintSep;
 
   const tokens = query.split(/[\s\u3000]+/).filter(Boolean).map(fold).filter(Boolean);
   const q = fold(query);
@@ -362,7 +268,7 @@ export function runSearch(index: SearchIndex | null, raw: string): SearchResult 
   let allUnderstood = tokens.length > 0;
 
   for (const t of tokens) {
-    const c = bestBy(CONCEPTS, (x) => conceptScore(x.keywords, t));
+    const c = bestBy(concepts, (x) => conceptScore(x.keywords, t));
     if (c && !picked.some((p) => p.dimension === c.item.dimension)) {
       picked.push(c.item);
       continue;
@@ -392,14 +298,14 @@ export function runSearch(index: SearchIndex | null, raw: string): SearchResult 
 
     shortcuts.push({
       label: [pickedVendor?.n, ...picked.map((c) => c.label)].filter(Boolean).join(' · '),
-      hint: picked.map((c) => c.hint).join('；'),
+      hint: picked.map((c) => c.hint).join(hintSep),
       href: `/leaderboard/all/?${params.toString()}`,
       count,
       vendor: pickedVendor,
     });
   }
 
-  for (const t of TRACK_SHORTCUTS) {
+  for (const t of trackShortcuts) {
     if (conceptScore(t.keywords, q) > 0) {
       shortcuts.push({
         label: t.label,

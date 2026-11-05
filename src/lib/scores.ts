@@ -15,13 +15,18 @@
 import type { Attribution, BenchmarkScore, ModelRecord, ScoreUnit, SourceId, WorldSnapshot } from './types';
 import {
   BENCHMARK_CATEGORIES,
+  benchmarkDescription,
+  benchmarkName,
   benchmarkOf,
   canonicalBenchmarkId,
+  categoryName,
   type BenchmarkCategory,
 } from '@/data/benchmark-registry';
 import { buildValueScore } from './derive';
 import { formatCount, formatDate, formatPrice, formatScoreByUnit } from './format';
-import { DEFAULT_LANG } from './i18n';
+import { DEFAULT_LANG, type Lang } from './i18n';
+import { libDict } from './i18n/lib-dict';
+import { uiDict } from './i18n/ui-dict';
 
 // ─── 收拢一个模型的全部成绩 ───────────────────────────────────
 
@@ -113,9 +118,14 @@ export function allScoresOf(model: ModelRecord): BenchmarkScore[] {
  * 按量纲写分数。ECI 是唯一一个既不是百分数、又不该被 `index` 那一支
  * 当成「加速倍率」渲染的指数（区间约 0–165，低于 100 会被印成 `85.30×`），所以单独处理。
  */
-export function formatLeagueScore(league: string, score: number, unit: ScoreUnit): string {
+export function formatLeagueScore(
+  league: string,
+  score: number,
+  unit: ScoreUnit,
+  lang: Lang = DEFAULT_LANG,
+): string {
   if (league === 'eci' || league === 'epoch_capabilities_index') return score.toFixed(1);
-  return formatScoreByUnit(score, unit);
+  return formatScoreByUnit(score, unit, lang);
 }
 
 // ─── 分位池 ───────────────────────────────────────────────────
@@ -190,9 +200,9 @@ export type TrackUnit = ScoreUnit | 'tokens' | 'price' | 'date' | 'delta';
 export type TrackCategory = BenchmarkCategory | '实用指标';
 
 export const TRACK_CATEGORIES: TrackCategory[] = [
-  BENCHMARK_CATEGORIES[0],
+  BENCHMARK_CATEGORIES[0].id,
   '实用指标',
-  ...BENCHMARK_CATEGORIES.slice(1),
+  ...BENCHMARK_CATEGORIES.slice(1).map((c) => c.id),
 ];
 
 export interface TrackEntry {
@@ -209,6 +219,7 @@ export interface Track {
   /** URL 里 `?track=` 的值。榜单赛道就是榜单 id；厂商自报另开的赛道加 `__self` 后缀 */
   id: string;
   label: string;
+  /** 分类的**内部 id**（中文取值，管线契约）。展示名查 BENCHMARK_CATEGORIES，见 categoryLabel() */
   category: TrackCategory;
   unit: TrackUnit;
   /** 一句人话，说清这条赛道量什么 */
@@ -253,8 +264,11 @@ function sortEntries(entries: TrackEntry[], higherIsBetter: boolean): TrackEntry
   );
 }
 
-function benchmarkTracks(snapshot: WorldSnapshot, pools: ScorePools): Track[] {
+function benchmarkTracks(snapshot: WorldSnapshot, pools: ScorePools, lang: Lang): Track[] {
   const meta = new Map((snapshot.benchmarks ?? []).map((b) => [canonicalBenchmarkId(b.id), b]));
+  const selfReportNote = uiDict[lang].leaderboard.selfReportTrackNote;
+  const selfSuffix = libDict[lang].insights.selfReportSuffix;
+  const noteSep = lang === 'ja' ? '' : ' ';
   const byLeague = new Map<string, Partial<Record<Attribution, PoolEntry[]>>>();
   for (const [key, pool] of pools) {
     const [league, attribution] = key.split('::') as [string, Attribution];
@@ -276,12 +290,12 @@ function benchmarkTracks(snapshot: WorldSnapshot, pools: ScorePools): Track[] {
       const isSelf = attribution === 'vendor-self-reported';
       return {
         id,
-        label: isSelf && thirdParty.length > 0 ? `${info.label}（厂商自报）` : info.label,
+        label: isSelf && thirdParty.length > 0 ? `${benchmarkName(info, lang)}${selfSuffix}` : benchmarkName(info, lang),
         category: info.category,
         unit,
         note: isSelf
-          ? `${info.blurb} 这条赛道里的分数全部由厂商自己公布，未经独立复核，只在自报的成绩之间比较。`
-          : info.blurb,
+          ? `${benchmarkDescription(info, lang)}${noteSep}${selfReportNote}`
+          : benchmarkDescription(info, lang),
         higherIsBetter: info.higherIsBetter,
         scale: 'linear',
         superseded: m?.supersededBy != null,
@@ -292,7 +306,7 @@ function benchmarkTracks(snapshot: WorldSnapshot, pools: ScorePools): Track[] {
           pool.map(({ model, score }) => ({
             model,
             value: score.score,
-            text: formatLeagueScore(league, score.score, unit),
+            text: formatLeagueScore(league, score.score, unit, lang),
             attribution,
             sourceUrl: score.sourceUrl,
           })),
@@ -315,8 +329,9 @@ function dateValue(iso: string): number | null {
   return Number.isNaN(t) ? null : t;
 }
 
-function derivedTracks(models: ModelRecord[]): Track[] {
+function derivedTracks(models: ModelRecord[], lang: Lang): Track[] {
   const valueOf = buildValueScore(models);
+  const d = uiDict[lang].leaderboard.derived;
   // 文字进、文字出才是可比的「对话模型」价格。语音转写（Whisper）虽然也输出文字，
   // 但按分钟计费，折成 token 价接近 0，混进来会把「最便宜」颁给它们。
   const textChat = (m: ModelRecord) =>
@@ -324,11 +339,10 @@ function derivedTracks(models: ModelRecord[]): Track[] {
 
   const value: Track = {
     id: 'value',
-    label: '性价比',
+    label: d.value.label,
     category: '实用指标',
     unit: 'delta',
-    note:
-      '智力分位减去价格分位：只有「比同价位的更聪明」或「比同智力的更便宜」才拿得到高分。不是智力除以价格——那种算法会把冠军颁给最便宜的老模型。',
+    note: d.value.note,
     higherIsBetter: true,
     scale: 'linear',
     superseded: false,
@@ -356,10 +370,10 @@ function derivedTracks(models: ModelRecord[]): Track[] {
 
   const context: Track = {
     id: 'context',
-    label: '上下文窗口',
+    label: d.context.label,
     category: '实用指标',
     unit: 'tokens',
-    note: '一次能读进去多少 tokens，越大越能一口气啃完长文档。注意这是厂商标称的上限，实际记不记得住见「长文本记忆」榜。',
+    note: d.context.note,
     higherIsBetter: true,
     scale: 'log',
     superseded: false,
@@ -386,10 +400,10 @@ function derivedTracks(models: ModelRecord[]): Track[] {
 
   const cheapest: Track = {
     id: 'cheapest',
-    label: '最便宜',
+    label: d.cheapest.label,
     category: '实用指标',
     unit: 'price',
-    note: '输出每百万 tokens 的价格，越靠前越便宜。只比较输出文字的模型——按张、按分钟计费的图像与语音模型折算成 token 价会得到假的 $0。',
+    note: d.cheapest.note,
     higherIsBetter: false,
     scale: 'log',
     superseded: false,
@@ -404,7 +418,7 @@ function derivedTracks(models: ModelRecord[]): Track[] {
               {
                 model: m,
                 value: p,
-                text: formatPrice(p, DEFAULT_LANG),
+                text: formatPrice(p, lang),
                 attribution: 'third-party' as Attribution,
                 sourceUrl: null,
               },
@@ -417,10 +431,10 @@ function derivedTracks(models: ModelRecord[]): Track[] {
 
   const newest: Track = {
     id: 'newest',
-    label: '最新发布',
+    label: d.newest.label,
     category: '实用指标',
     unit: 'date',
-    note: '按发布日期从新到旧。发布日期取多个上游源的最早值，只精确到月的照实写到月。',
+    note: d.newest.note,
     higherIsBetter: true,
     scale: 'linear',
     superseded: false,
@@ -435,7 +449,7 @@ function derivedTracks(models: ModelRecord[]): Track[] {
               {
                 model: m,
                 value: t,
-                text: formatDate(m.releaseDate, m.releaseDatePrecision, DEFAULT_LANG),
+                text: formatDate(m.releaseDate, m.releaseDatePrecision, lang),
                 attribution: 'third-party' as Attribution,
                 sourceUrl: null,
               },
@@ -455,9 +469,9 @@ function derivedTracks(models: ModelRecord[]): Track[] {
  * 三类来源：每个够 5 人的榜单一条（第三方与自报分列）；四条派生赛道；
  * 编程类不做特殊处理——它们与其他榜单走同一条分池规则。
  */
-export function buildTrackIndex(snapshot: WorldSnapshot): Track[] {
+export function buildTrackIndex(snapshot: WorldSnapshot, lang: Lang = DEFAULT_LANG): Track[] {
   const pools = buildScorePools(snapshot.models);
-  const tracks = [...benchmarkTracks(snapshot, pools), ...derivedTracks(snapshot.models)];
+  const tracks = [...benchmarkTracks(snapshot, pools, lang), ...derivedTracks(snapshot.models, lang)];
   const order = new Map(TRACK_CATEGORIES.map((c, i) => [c, i]));
   return tracks.sort(
     (a, b) =>
@@ -471,4 +485,14 @@ export function buildTrackIndex(snapshot: WorldSnapshot): Track[] {
 /** 默认打开的赛道：综合智力。快照里没有它时退到第一条。 */
 export function defaultTrackId(tracks: Track[]): string {
   return tracks.find((t) => t.id === 'eci')?.id ?? tracks[0]?.id ?? '';
+}
+
+/**
+ * 分类的展示名。id 是管线契约（中文取值），展示名查注册表；
+ * 「实用指标」不在注册表里，查 ui-dict。
+ */
+export function categoryLabel(c: TrackCategory, lang: Lang = DEFAULT_LANG): string {
+  if (c === '实用指标') return uiDict[lang].leaderboard.categoryPractical;
+  const info = BENCHMARK_CATEGORIES.find((x) => x.id === c);
+  return info ? categoryName(info, lang) : c;
 }

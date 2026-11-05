@@ -20,10 +20,12 @@
  */
 
 import type { BenchmarkScore, ModelRecord } from './types';
-import { leagueOf } from '@/data/coding-leagues';
+import { leagueDescription, leagueName, leagueOf, leagueRowLabel } from '@/data/coding-leagues';
 import { formatScoreByUnit } from './format';
+import { libDict, type LibAptitudeId } from './i18n/lib-dict';
+import { DEFAULT_LANG, type Lang } from './i18n/types';
 
-export type AptitudeId = 'smart' | 'code' | 'memory' | 'cheap';
+export type AptitudeId = LibAptitudeId;
 
 export interface AptitudeMeta {
   id: AptitudeId;
@@ -33,12 +35,15 @@ export interface AptitudeMeta {
   blurb: string;
 }
 
-export const APTITUDES: AptitudeMeta[] = [
-  { id: 'smart', label: '聪明', blurb: '综合智力。取 Epoch AI 的 Capabilities Index，它把十几项学术评测归并成一个总分。' },
-  { id: 'code', label: '编程', blurb: '写代码与做软件工程的本事。取该模型拿得到的最可信的一项编程评测。' },
-  { id: 'memory', label: '记性', blurb: '上下文窗口，也就是一次能读进去多少字。窗口越大，越能一口气啃完长文档或整个代码仓库。' },
-  { id: 'cheap', label: '便宜', blurb: '输出每百万 token 的价格，条越长越便宜。' },
-];
+const APTITUDE_IDS: AptitudeId[] = ['smart', 'code', 'memory', 'cheap'];
+
+/** 四条横条的标签与解释，按语言取。 */
+export function aptitudesFor(lang: Lang = DEFAULT_LANG): AptitudeMeta[] {
+  const bars = libDict[lang].aptitude.bars;
+  return APTITUDE_IDS.map((id) => ({ id, label: bars[id].label, blurb: bars[id].blurb }));
+}
+
+export const APTITUDES: AptitudeMeta[] = aptitudesFor(DEFAULT_LANG);
 
 export interface AptitudeValue {
   id: AptitudeId;
@@ -101,10 +106,7 @@ function rankOf(descSorted: number[], value: number): number {
   return n;
 }
 
-const VERDICTS = ['入门', '偏弱', '中等', '很强', '顶尖'];
-const PRICE_VERDICTS = ['天价', '偏贵', '适中', '便宜', '极便宜'];
-
-function verdictOf(fill: number, words: string[]): string {
+function verdictOf(fill: number, words: readonly string[]): string {
   const i = Math.min(words.length - 1, Math.floor(fill * words.length));
   return words[i];
 }
@@ -224,7 +226,8 @@ function fmtPrice(usd: number): string {
  * 编程只跟同一赛制的比。所以悬停文案里必须写清「在多少个有成绩的模型里排第几」，
  * 否则「排前 10%」会被误读成「在全部 485 个模型里排前 10%」。
  */
-export function buildAptitudeScale(models: ModelRecord[]): AptitudeScale {
+export function buildAptitudeScale(models: ModelRecord[], lang: Lang = DEFAULT_LANG): AptitudeScale {
+  const d = libDict[lang].aptitude;
   const eciAsc = models
     .map((m) => m.benchmarks.eci)
     .filter((v): v is number => v != null)
@@ -273,7 +276,7 @@ export function buildAptitudeScale(models: ModelRecord[]): AptitudeScale {
       let smart: AptitudeValue;
       if (eci == null) {
         smart = {
-          ...missing('还没有公开的综合智力成绩。没测过不等于不聪明。'),
+          ...missing(d.missingSmart),
           id: 'smart',
         };
       } else {
@@ -282,9 +285,9 @@ export function buildAptitudeScale(models: ModelRecord[]): AptitudeScale {
         smart = {
           id: 'smart',
           fill,
-          literal: `世界#${rank}`,
-          verdict: verdictOf(fill, VERDICTS),
-          title: `综合智力指数 ${eci.toFixed(1)}，在 ${eciAsc.length} 个有成绩的模型里排第 ${rank}。\n来源：Epoch AI Capabilities Index。`,
+          literal: d.worldRank(rank),
+          verdict: verdictOf(fill, d.verdicts),
+          title: d.smartTitle(eci.toFixed(1), eciAsc.length, rank),
         };
       }
 
@@ -296,7 +299,7 @@ export function buildAptitudeScale(models: ModelRecord[]): AptitudeScale {
       let code: AptitudeValue;
       if (!pick) {
         code = {
-          ...missing('没有查到任何公开的编程评测成绩。不知道不等于不会写。'),
+          ...missing(d.missingCode),
           id: 'code',
         };
       } else {
@@ -327,18 +330,16 @@ export function buildAptitudeScale(models: ModelRecord[]): AptitudeScale {
         code = {
           id: 'code',
           fill,
-          literal: rankable ? verdictOf(fill, VERDICTS) : '已参赛',
-          verdict: rankable ? verdictOf(fill, VERDICTS) : null,
-          labelOverride: league.rowLabel,
+          literal: rankable ? verdictOf(fill, d.verdicts) : d.entered,
+          verdict: rankable ? verdictOf(fill, d.verdicts) : null,
+          labelOverride: leagueRowLabel(league, lang),
           selfReported,
           title:
-            `${league.label} ${unitText}\n` +
-            (rankable
-              ? `在同样被这个榜、由同一类测量方测过的 ${pool.length} 个模型里排第 ${rank}。\n`
-              : `同赛制同测量方只有 ${pool.length} 个模型有成绩，样本太少，不给档位。\n`) +
-            `${league.blurb}\n` +
-            `${selfReported ? '厂商自报，未经独立复核。' : '第三方实测。'}\n` +
-            `档位只在本赛制内部计算——换一套评测脚手架，同一个模型能差二三十分，所以这里显示名次而不是分数。`,
+            `${leagueName(league, lang)} ${unitText}\n` +
+            (rankable ? d.codeRankedLine(pool.length, rank) : d.codeSmallPoolLine(pool.length)) +
+            `${leagueDescription(league, lang)}\n` +
+            `${selfReported ? d.selfReportedNote : d.thirdPartyNote}\n` +
+            d.poolNote,
         };
       }
 
@@ -346,15 +347,20 @@ export function buildAptitudeScale(models: ModelRecord[]): AptitudeScale {
       const ctx = model.contextWindow;
       let memory: AptitudeValue;
       if (ctx == null || ctx <= 0) {
-        memory = { ...missing('上下文窗口未公开。'), id: 'memory' };
+        memory = { ...missing(d.missingMemory), id: 'memory' };
       } else {
         const fill = percentile(ctxAsc, Math.log10(ctx));
         memory = {
           id: 'memory',
           fill,
           literal: fmtContext(ctx),
-          verdict: verdictOf(fill, VERDICTS),
-          title: `上下文窗口 ${ctx.toLocaleString()} tokens，约合 ${Math.round(ctx * 0.7).toLocaleString()} 个汉字。\n在 ${ctxAsc.length} 个已知窗口大小的模型里处于第 ${Math.round(fill * 100)} 百分位。`,
+          verdict: verdictOf(fill, d.verdicts),
+          title: d.memoryTitle(
+            ctx.toLocaleString(),
+            Math.round(ctx * 0.7).toLocaleString(),
+            ctxAsc.length,
+            Math.round(fill * 100),
+          ),
         };
       }
 
@@ -362,7 +368,7 @@ export function buildAptitudeScale(models: ModelRecord[]): AptitudeScale {
       const price = model.pricing.outputPerMTok;
       let cheap: AptitudeValue;
       if (price == null || price <= 0 || !model.modalities.output.includes('text')) {
-        cheap = { ...missing('没有公开的文本输出报价。'), id: 'cheap' };
+        cheap = { ...missing(d.missingCheap), id: 'cheap' };
       } else {
         // 价格低 = 条长，所以取反
         const fill = 1 - percentile(priceAsc, Math.log10(price));
@@ -370,8 +376,8 @@ export function buildAptitudeScale(models: ModelRecord[]): AptitudeScale {
           id: 'cheap',
           fill,
           literal: fmtPrice(price),
-          verdict: verdictOf(fill, PRICE_VERDICTS),
-          title: `输出每百万 tokens ${price} 美元。\n在 ${priceAsc.length} 个有报价的文本模型里，比其中 ${Math.round(fill * 100)}% 便宜。`,
+          verdict: verdictOf(fill, d.priceVerdicts),
+          title: d.cheapTitle(String(price), priceAsc.length, Math.round(fill * 100)),
         };
       }
 

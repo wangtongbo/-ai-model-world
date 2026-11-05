@@ -17,6 +17,8 @@ import type { ModelRecord, Vendor } from './types';
 import { buildValueScore, daysSince, rankByEci } from './derive';
 import { formatCount } from './format';
 import { buildCodingConsensus } from './coding-consensus';
+import { libDict } from './i18n/lib-dict';
+import { DEFAULT_LANG, type Lang } from './i18n/types';
 
 /** 卡片上放不下「$0.10 / 百万 tokens」，用短写法 */
 function shortPrice(usd: number): string {
@@ -97,7 +99,9 @@ export function buildChampions(
   now: Date,
   /** 形象注册表里有没有这家厂商。「最新发布」「最便宜」只在正规厂商里选，否则会被社区微调刷屏 */
   registryHas: (vendorId: string) => boolean,
+  lang: Lang = DEFAULT_LANG,
 ): Champion[] {
+  const d = libDict[lang].champions;
   const vendorOf = new Map(vendors.map((v) => [v.id, v]));
   const alive = models.filter((m) => !m.retiredAt);
   const ranks = rankByEci(alive);
@@ -130,7 +134,7 @@ export function buildChampions(
     'smart',
     best(alive, (m) => m.benchmarks.eci),
     (v) => `ECI ${v.toFixed(0)}`,
-    () => `综合智力指数，${scored.length} 个受测模型中第一`,
+    () => d.smartDetail(scored.length),
   );
 
   /*
@@ -141,29 +145,29 @@ export function buildChampions(
   push(
     'code',
     best(alive, (m) => codingOf(m)?.score ?? null),
-    (v) => `前 ${Math.max(1, Math.round((1 - v) * 100))}%`,
-    (_v, m) => `${codingOf(m)!.leagues} 个第三方编程榜的平均排名最高`,
+    (v) => d.topPercent(Math.max(1, Math.round((1 - v) * 100))),
+    (_v, m) => d.codeDetail(codingOf(m)!.leagues),
   );
 
   push(
     'value',
     best(alive, valueOf),
     (_v, m) => `${shortPrice(m.pricing.outputPerMTok!)}/M`,
-    (_v, m) => `智力全球 #${ranks.get(m.id)}，价格远低于同级`,
+    (_v, m) => d.valueDetail(ranks.get(m.id)!),
   );
 
   push(
     'cheap',
     best(scored, textPrice, 'asc'),
     (v) => `${shortPrice(v)}/M`,
-    () => '有第三方评测成绩的模型里，输出最便宜',
+    () => d.cheapDetail,
   );
 
   push(
     'memory',
     best(scored, (m) => m.contextWindow),
     (v) => `${formatCount(v)} tokens`,
-    () => '上下文窗口，一次能读进去的字数',
+    () => d.memoryDetail,
   );
 
   push(
@@ -175,11 +179,8 @@ export function buildChampions(
       }),
       releaseTime,
     ),
-    (_v, m) => {
-      const d = daysSince(m.releaseDate, now) ?? 0;
-      return d <= 0 ? '今天' : `${d} 天前`;
-    },
-    (_v, m) => `${m.releaseDate} 发布`,
+    (_v, m) => d.daysAgo(daysSince(m.releaseDate, now) ?? 0),
+    (_v, m) => (m.releaseDate ? d.releasedOn(m.releaseDate) : ''),
   );
 
   push(
@@ -189,7 +190,7 @@ export function buildChampions(
       (m) => m.benchmarks.eci,
     ),
     (v) => `ECI ${v.toFixed(0)}`,
-    (_v, m) => `国内第一，全球 #${ranks.get(m.id)}`,
+    (_v, m) => d.eastDetail(ranks.get(m.id)!),
   );
 
   push(
@@ -199,7 +200,7 @@ export function buildChampions(
       (m) => m.benchmarks.eci,
     ),
     (v) => `ECI ${v.toFixed(0)}`,
-    (_v, m) => `开源第一，全球 #${ranks.get(m.id)}`,
+    (_v, m) => d.openDetail(ranks.get(m.id)!),
   );
 
   return out;

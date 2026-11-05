@@ -8,7 +8,7 @@ import {
   type SweLeague,
   type VisualPruning,
 } from '@/lib/derive';
-import { profileFor } from '@/data/vendor-registry';
+import { profileFor, vendorName } from '@/data/vendor-registry';
 import { readableOnDark } from '@/lib/color';
 import { VendorCrest } from './VendorCrest';
 import { StatRow } from './StatRow';
@@ -18,7 +18,8 @@ import type { AptitudeRow } from '@/lib/aptitude';
 import { StateOverlays } from './StateOverlays';
 import { anchorsFor } from '@/lib/sprite-manifest';
 import { Bookshelf, Computer } from '@/components/room/Furniture';
-import { getDict, type Lang } from '@/lib/i18n';
+import { getDict, langLink, type Lang } from '@/lib/i18n';
+import { uiDict } from '@/lib/i18n/ui-dict';
 import type { Trait } from '@/lib/traits';
 import { asset } from '@/lib/asset';
 
@@ -117,10 +118,10 @@ function Roof({ continent, color }: { continent: 'west' | 'east'; color: string 
  * 一眼就能看出哪些分数经过了独立复核。
  */
 export const SWE_LEAGUE: Record<SweLeague, { name: string; thirdParty: boolean }> = {
-  epoch: { name: 'SWE-bench Verified · Epoch AI 统一复跑', thirdParty: true },
-  vendor: { name: 'SWE-bench Verified · 厂商自报，未经第三方复核', thirdParty: false },
-  'pro-scale': { name: 'SWE-Bench Pro · Scale AI 官方榜', thirdParty: true },
-  'pro-vendor': { name: 'SWE-Bench Pro · 厂商系统卡自评，未经第三方复核', thirdParty: false },
+  epoch: { name: uiDict.zh.room.sweLeague.epoch, thirdParty: true },
+  vendor: { name: uiDict.zh.room.sweLeague.vendor, thirdParty: false },
+  'pro-scale': { name: uiDict.zh.room.sweLeague['pro-scale'], thirdParty: true },
+  'pro-vendor': { name: uiDict.zh.room.sweLeague['pro-vendor'], thirdParty: false },
 };
 
 export interface ModelRoomProps {
@@ -168,7 +169,12 @@ export function ModelRoom({
   const shelf = bookshelfOf(model);
   const dust = shelfDustOf(model);
   const computer = scales.computer.computerOf(model);
-  const league = computer.league ? SWE_LEAGUE[computer.league] : null;
+  const league = computer.league
+    ? {
+        name: dict.ui.room.sweLeague[computer.league],
+        thirdParty: SWE_LEAGUE[computer.league].thirdParty,
+      }
+    : null;
   const scale = TIER_SCALE[visual.size.tier] ?? 1;
   const cell = `calc(${FIGURE} * ${scale})`;
 
@@ -177,12 +183,12 @@ export function ModelRoom({
     : '????.??';
 
   const computerTitle = league
-    ? `编程能力 ${computer.score!.toFixed(1)}%\n${league.name}\n档位按同赛制内的分位计算，跨赛制分数不可比`
-    : `编程能力${dict.unknown.noData}：没有查到公开的编程评测成绩。不知道不等于不会。`;
+    ? dict.ui.room.computerTitle(`${computer.score!.toFixed(1)}%`, league.name)
+    : dict.ui.room.computerMissing(dict.unknown.noData);
 
   return (
     <Link
-      href={`/model/${visual.slug}/`}
+      href={langLink(lang, `/model/${visual.slug}/`)}
       className="group block outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-gold)]"
       style={{ width: ROOM_W }}
       title={visual.name}
@@ -230,9 +236,14 @@ export function ModelRoom({
 
           {/* 陈设：左书架、中角色、右电脑，全部贴地对齐 */}
           <div className="absolute inset-x-0 bottom-3.5 flex items-end justify-between px-1.5">
-            <div className="shrink-0" title={`上下文 ${model.contextWindow ?? '未知'}`}>
+            <div
+              className="shrink-0"
+              title={dict.ui.room.contextTitle(
+                model.contextWindow != null ? String(model.contextWindow) : dict.ui.room.unknownValue,
+              )}
+            >
               {shelf ? (
-                <Bookshelf tier={shelf} dust={dust} size={1.4} title="上下文窗口" muted />
+                <Bookshelf tier={shelf} dust={dust} size={1.4} title={dict.attr.contextWindow} muted />
               ) : (
                 <div className="h-2 w-8" />
               )}
@@ -337,13 +348,13 @@ export function ModelRoom({
               motif={profile.motif}
               accentColor={profile.accentColor}
               size={12}
-              title={profile.nameZh}
+              title={vendorName(profile, lang)}
             />
             <span className="truncate" style={{ color: nameColor }}>
-              {profile.nameZh}
+              {vendorName(profile, lang)}
             </span>
             <span className="ml-auto shrink-0 flex items-center gap-1.5">
-              <StatRow model={model} accent={nameColor} numbers={false} prune={pruning} />
+              <StatRow model={model} accent={nameColor} lang={lang} numbers={false} prune={pruning} />
             </span>
           </div>
 
@@ -352,7 +363,7 @@ export function ModelRoom({
             不用查图例，谁的格子多谁就强，缺数据的画成空槽加「暂无」。
           */}
           <div className="mt-2 border-t border-white/10 pt-2">
-            <AbilityBars row={aptitude} compact highlight={highlight} />
+            <AbilityBars row={aptitude} lang={lang} compact highlight={highlight} />
           </div>
 
           {/*

@@ -1,4 +1,6 @@
 import type { AptitudeId } from '@/lib/aptitude';
+import type { BenchmarkCategory, BenchmarkCategoryInfo } from '@/data/benchmark-registry';
+import type { LText } from '@/lib/i18n';
 import type { ModelKind } from '@/lib/kind';
 import type { Continent, Modality, ScoreUnit } from '@/lib/types';
 
@@ -17,9 +19,10 @@ import type { Continent, Modality, ScoreUnit } from '@/lib/types';
 export interface CmpBench {
   /** 池键 `league::attribution` */
   key: string;
-  label: string;
-  category: string;
-  blurb: string;
+  /** 榜名 + 厂商自报后缀，四语言各一份 */
+  label: LText;
+  category: BenchmarkCategory;
+  blurb: LText;
   unit: ScoreUnit;
   higherIsBetter: boolean;
   selfReported: boolean;
@@ -37,8 +40,8 @@ export interface CmpBench {
   track: string | null;
 }
 
-/** 一条能力条：`[填充比例, 短标, 是否厂商自报, 改写后的标签]`，缺数据时前两项为 null */
-export type CmpApt = [number | null, string | null, 0 | 1, string?];
+/** 一条能力条：`[填充比例, 短标(四语言), 是否厂商自报, 改写后的标签(四语言)]`，缺数据时前两项为 null */
+export type CmpApt = [number | null, LText | null, 0 | 1, LText?];
 
 /** 一条成绩：`[池下标, 原始分, 格式化好的文本, 池内名次]` */
 export type CmpScore = [number, number, string, number];
@@ -49,7 +52,7 @@ export interface CmpModel {
   vendor: string;
   kind: ModelKind | null;
   date: string | null;
-  dateText: string;
+  dateText: LText;
   retired: boolean;
   cutoff: string | null;
   ctx: number | null;
@@ -59,8 +62,8 @@ export interface CmpModel {
   priceCached: number | null;
   open: boolean | null;
   license: string | null;
-  /** 参数量。官方未公布时为 null */
-  params: string | null;
+  /** 参数量（四语言）。官方未公布时为 null */
+  params: LText | null;
   inputs: Modality[];
   outputs: Modality[];
   tool: boolean | null;
@@ -69,7 +72,8 @@ export interface CmpModel {
   eci: number | null;
   eciRank: number | null;
   apt: Record<AptitudeId, CmpApt>;
-  persona: string;
+  /** 一句话人设，四语言各算一次 */
+  persona: LText;
   sprite: boolean;
   /** 体型档位的显示缩放，与广场上的角色一致 */
   scale: number;
@@ -78,6 +82,8 @@ export interface CmpModel {
 
 export interface CmpVendor {
   name: string;
+  /** 国际通用名（en/ja/ko 用） */
+  nameEn: string;
   motif: string;
   /** 已按深色背景提亮过的厂商色 */
   accent: string;
@@ -86,7 +92,8 @@ export interface CmpVendor {
 
 export interface CompareData {
   generatedAt: string;
-  categories: string[];
+  /** 分类的 id 与四语言展示名。id 是管线契约（中文取值），展示名查 name[lang] */
+  categories: BenchmarkCategoryInfo[];
   vendors: Record<string, CmpVendor>;
   benches: CmpBench[];
   models: CmpModel[];

@@ -35,13 +35,13 @@
 import type { ModelRecord, Vendor } from './types';
 import { bookshelfOf, buildPriceScale, buildValueScore, rankByEci, type PriceScale } from './derive';
 import { buildCodingConsensus, type CodingConsensus } from './coding-consensus';
+import { libDict, type PersonaDimensionId, type PersonaDomainId } from './i18n/lib-dict';
+import { DEFAULT_LANG, type Lang } from './i18n/types';
 
 // ─── 维度 ─────────────────────────────────────────────────────
 
 interface Dimension {
-  id: string;
-  /** 「综合智力最强」里的那一段 */
-  superlative: string;
+  id: PersonaDimensionId;
   /** 取值。返回 null 表示这个模型不参与该维度的排名。 */
   value(m: ModelRecord): number | null;
   /** 值越大越好还是越小越好 */
@@ -70,45 +70,42 @@ function dimensionsFor(
   codingOf: (m: ModelRecord) => CodingConsensus | null,
 ): Dimension[] {
   return [
-    { id: 'intelligence', superlative: '综合智力第一', value: (m) => m.benchmarks.eci, order: 'desc' },
+    { id: 'intelligence', value: (m) => m.benchmarks.eci, order: 'desc' },
     /*
      * 编程用的是多榜共识分（见 coding-consensus.ts），不是单一榜单的原始分。
      * 单榜取最大值会把「最会写代码」颁给被测得最早的老模型——已经翻过一次车。
      */
-    { id: 'coding', superlative: '最会写代码', value: (m) => codingOf(m)?.score ?? null, order: 'desc' },
-    { id: 'memory', superlative: '记性最好', value: (m) => m.contextWindow, order: 'desc' },
-    { id: 'value', superlative: '最划算', value: valueOf, order: 'desc' },
-    { id: 'cheap', superlative: '最便宜', value: textPrice, order: 'asc' },
+    { id: 'coding', value: (m) => codingOf(m)?.score ?? null, order: 'desc' },
+    { id: 'memory', value: (m) => m.contextWindow, order: 'desc' },
+    { id: 'value', value: valueOf, order: 'desc' },
+    { id: 'cheap', value: textPrice, order: 'asc' },
   ];
 }
 
 // ─── 限定域 ───────────────────────────────────────────────────
 
 interface Domain {
-  id: string;
-  /** 「开源模型里」这一段。全世界那一档是空前缀加「全世界」。 */
-  prefix: string;
+  id: PersonaDomainId;
   member(m: ModelRecord, v: Vendor | undefined): boolean;
 }
 
 /** 域顺序即宽窄：靠前的更宽，挑选时优先。 */
 const DOMAINS: Domain[] = [
-  { id: 'all', prefix: '全世界', member: () => true },
-  { id: 'open', prefix: '开源模型里', member: (m) => m.openWeights === true },
-  { id: 'east', prefix: '国内厂商里', member: (_m, v) => v?.continent === 'east' },
-  { id: 'west', prefix: '国外厂商里', member: (_m, v) => v?.continent === 'west' },
+  { id: 'all', member: () => true },
+  { id: 'open', member: (m) => m.openWeights === true },
+  { id: 'east', member: (_m, v) => v?.continent === 'east' },
+  { id: 'west', member: (_m, v) => v?.continent === 'west' },
   {
     id: 'million',
-    prefix: '百万上下文的模型里',
     member: (m) => m.contextWindow != null && m.contextWindow >= 1_000_000,
   },
-  { id: 'vision', prefix: '看得懂图的模型里', member: (m) => m.modalities.input.includes('image') },
+  { id: 'vision', member: (m) => m.modalities.input.includes('image') },
   /*
    * 「十强里最便宜」这类说法是这套机制最有价值的产出：一个全局排第 10 的模型
    * 在这个圈子里可能是压倒性的第一，而「全世界最便宜」那句话轮不到它。
    * 十强的成员由 ECI 名次决定，随榜单每日变化，不需要人工维护。
    */
-  { id: 'top10', prefix: '十强里', member: () => false },
+  { id: 'top10', member: () => false },
 ];
 
 /** top10 的成员判定要先算完排名才知道，所以单独在建上下文时注入 */
@@ -116,11 +113,6 @@ const TOP10 = 10;
 
 /** 域内成员少于这个数时，「第一名」这个说法没有信息量 */
 const MIN_DOMAIN_SIZE = 5;
-
-// ─── 兜底用的档位词 ───────────────────────────────────────────
-
-const PRICE_WORDS = ['白菜价', '便宜', '中等价位', '偏贵', '天价'];
-const MEMORY_WORDS = ['记性短', '记性一般', '记性不错', '记性很好', '能读长文'];
 
 // ─── 上下文的生活化锚点 ───────────────────────────────────────
 
@@ -131,20 +123,17 @@ const MEMORY_WORDS = ['记性短', '记性一般', '记性不错', '记性很好
  *
  * 换算按中文约 1.5 字/token、英文约 0.75 词/token 取保守值，
  * 措辞一律用「约」，不给精确数字。
+ * 文案在 lib-dict 的 persona.contextAnchors，与此处的 token 门槛同序（从高到低）。
  */
-const CONTEXT_ANCHORS: Array<{ min: number; text: string }> = [
-  { min: 2_000_000, text: '一次能读完一整套长篇小说' },
-  { min: 1_000_000, text: '一次能读完《哈利·波特》全七部' },
-  { min: 500_000, text: '一次能读完《三体》三部曲' },
-  { min: 200_000, text: '一次能读完一本《三体》' },
-  { min: 100_000, text: '一次能读完一本中篇小说' },
-  { min: 32_000, text: '一次能读完一篇长论文' },
-  { min: 0, text: '一次只能读几千字' },
-];
+const CONTEXT_ANCHOR_MIN = [2_000_000, 1_000_000, 500_000, 200_000, 100_000, 32_000, 0];
 
-export function contextAnchor(tokens: number | null): string | null {
+export function contextAnchor(tokens: number | null, lang: Lang = DEFAULT_LANG): string | null {
   if (tokens == null || tokens <= 0) return null;
-  return CONTEXT_ANCHORS.find((a) => tokens >= a.min)?.text ?? null;
+  const texts = libDict[lang].persona.contextAnchors;
+  for (let i = 0; i < CONTEXT_ANCHOR_MIN.length; i++) {
+    if (tokens >= CONTEXT_ANCHOR_MIN[i]) return texts[i];
+  }
+  return null;
 }
 
 // ─── 人设上下文 ───────────────────────────────────────────────
@@ -226,31 +215,30 @@ export function buildPersonaContext(models: ModelRecord[], vendors: Vendor[]): P
  * 其余的用「便宜、能读长文、会看图的开源模型」这类拼接——每一段都对应一个具体字段，
  * 组合起来仍然能把这个模型和邻居区分开，而且完全没有编造。
  */
-function positioning(model: ModelRecord, ctx: PersonaContext): string | null {
+function positioning(model: ModelRecord, ctx: PersonaContext, lang: Lang): string | null {
+  const d = libDict[lang].persona;
   const bits: string[] = [];
 
   const priceTier = ctx.priceScale.tierOf(model.pricing.outputPerMTok);
-  if (priceTier != null) bits.push(PRICE_WORDS[priceTier - 1]);
+  if (priceTier != null) bits.push(d.priceWords[priceTier - 1]);
 
   const rank = ctx.ranks.get(model.id);
   if (rank != null && rank <= RANKED_PERSONA_LIMIT) {
     const extra: string[] = [];
-    if (priceTier != null) extra.push(PRICE_WORDS[priceTier - 1]);
-    if (model.modalities.input.includes('image')) extra.push('会看图');
-    else if (model.capabilities.reasoning === true) extra.push('会深思');
-    const tail = extra.length > 0 ? `，${extra.join('、')}` : '';
-    return `综合智力全球第 ${rank}${tail}`;
+    if (priceTier != null) extra.push(d.priceWords[priceTier - 1]);
+    if (model.modalities.input.includes('image')) extra.push(d.visionCapable);
+    else if (model.capabilities.reasoning === true) extra.push(d.reasoningCapable);
+    return d.ranked(rank, extra);
   }
 
   const shelf = bookshelfOf(model);
-  if (shelf != null) bits.push(MEMORY_WORDS[shelf - 1]);
+  if (shelf != null) bits.push(d.memoryWords[shelf - 1]);
 
-  if (model.modalities.input.includes('image')) bits.push('会看图');
-  else if (model.capabilities.reasoning === true) bits.push('会深思');
+  if (model.modalities.input.includes('image')) bits.push(d.visionCapable);
+  else if (model.capabilities.reasoning === true) bits.push(d.reasoningCapable);
 
   if (bits.length === 0) return null;
-  const kind = model.openWeights === true ? '开源模型' : '模型';
-  return `${bits.join('、')}的${kind}`;
+  return d.describe(bits, model.openWeights === true);
 }
 
 /**
@@ -259,15 +247,16 @@ function positioning(model: ModelRecord, ctx: PersonaContext): string | null {
  * 三级阶梯，绝不留空也绝不编造：
  * 一级是限定域最高级，二级是定位式描述，三级老实承认资料不足。
  */
-export function personaFor(model: ModelRecord, ctx: PersonaContext): string {
+export function personaFor(model: ModelRecord, ctx: PersonaContext, lang: Lang = DEFAULT_LANG): string {
+  const d = libDict[lang].persona;
   for (const dim of ctx.dimensions) {
     for (const domain of DOMAINS) {
       if ((ctx.domainSize.get(domain.id) ?? 0) < MIN_DOMAIN_SIZE) continue;
       if (ctx.champions.get(`${dim.id}|${domain.id}`) !== model.id) continue;
-      // 「全世界最便宜的」读着别扭，补一个「的模型」收尾
-      return `${domain.prefix}${dim.superlative}的模型`;
+      // 「全世界最便宜的」读着别扭，zh 补一个「的模型」收尾；其余语言按各自语序拼
+      return d.champion(d.domainPrefix[domain.id], d.superlative[dim.id]);
     }
   }
 
-  return positioning(model, ctx) ?? '上游只收录了它的基本信息，还没有公开的评测成绩';
+  return positioning(model, ctx, lang) ?? d.fallback;
 }

@@ -2,6 +2,8 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { VendorCrest } from '@/components/character/VendorCrest';
+import { profileFor } from '@/data/vendor-registry';
+import { getDict, type Lang } from '@/lib/i18n';
 import type { CmpModel, CompareData } from './types';
 
 /**
@@ -24,12 +26,15 @@ export function ModelPicker({
   picked,
   onPick,
   disabled,
+  lang,
 }: {
   data: CompareData;
   picked: string[];
   onPick: (slug: string) => void;
   disabled: boolean;
+  lang: Lang;
 }) {
+  const dict = getDict(lang);
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -40,9 +45,13 @@ export function ModelPicker({
       data.models.map((m) => ({
         m,
         name: fold(m.name),
-        hay: fold(`${m.name} ${m.slug} ${data.vendors[m.vendor]?.name ?? ''} ${m.vendor}`),
+        // compare-data.json 里的厂商名是中文；非中文版把国际通用名也放进匹配串，zh 保持不变
+        hay: fold(
+          `${m.name} ${m.slug} ${data.vendors[m.vendor]?.name ?? ''} ${m.vendor}` +
+            (lang === 'zh' ? '' : ` ${profileFor(m.vendor).nameEn}`),
+        ),
       })),
-    [data],
+    [data, lang],
   );
 
   const results = useMemo(() => {
@@ -78,8 +87,8 @@ export function ModelPicker({
         type="search"
         value={q}
         disabled={disabled}
-        placeholder={disabled ? '最多同时对比 4 个模型' : '添加模型，如 Claude、GPT、DeepSeek'}
-        aria-label="添加要对比的模型"
+        placeholder={disabled ? dict.ui.picker.placeholderFull : dict.ui.picker.placeholder}
+        aria-label={dict.ui.picker.ariaLabel}
         onChange={(e) => {
           setQ(e.target.value);
           setActive(0);
@@ -109,7 +118,7 @@ export function ModelPicker({
       {open && results.length > 0 && (
         <ul
           role="listbox"
-          aria-label="匹配的模型"
+          aria-label={dict.ui.picker.listAria}
           className="pixel-panel-dark absolute left-0 right-0 top-full z-30 mt-1 max-h-96 overflow-y-auto py-1"
         >
           {results.map((m, i) => {
@@ -129,7 +138,7 @@ export function ModelPicker({
                   {v && <VendorCrest motif={v.motif} accentColor={v.accent} size={14} />}
                   <span className="min-w-0 flex-1 truncate">{m.name}</span>
                   <span className="shrink-0 text-[12px] text-[var(--color-ghost)]">
-                    {m.retired ? '已退役' : (m.date ?? '').slice(0, 7)}
+                    {m.retired ? dict.status.retired : (m.date ?? '').slice(0, 7)}
                   </span>
                 </button>
               </li>
@@ -139,7 +148,7 @@ export function ModelPicker({
       )}
       {open && fold(q) && results.length === 0 && (
         <div className="pixel-panel-dark absolute left-0 right-0 top-full z-30 mt-1 px-3 py-2 text-[13px] text-[var(--color-ghost)]">
-          没有匹配的模型
+          {dict.ui.picker.noMatch}
         </div>
       )}
     </div>

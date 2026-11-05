@@ -1,6 +1,7 @@
 import type { BenchmarkScore } from '@/lib/types';
-import { attributionLabel, leagueOf } from '@/data/coding-leagues';
+import { attributionText, leagueDescription, leagueName, leagueOf } from '@/data/coding-leagues';
 import { formatScoreByUnit } from '@/lib/format';
+import { getDict, type Lang } from '@/lib/i18n';
 import { outbound } from '@/lib/outbound';
 
 /**
@@ -13,13 +14,14 @@ import { outbound } from '@/lib/outbound';
  * 一个赛制一行，写清分数、谁测的、出处链接。同一个模型在不同赛制上
  * 分数差二三十分是常态，这张表存在的意义之一就是让人亲眼看到这件事。
  */
-export function CodingLedger({ scores }: { scores: BenchmarkScore[] }) {
+export function CodingLedger({ scores, lang }: { scores: BenchmarkScore[]; lang: Lang }) {
+  const dict = getDict(lang);
   if (scores.length === 0) {
     return (
       <p className="text-[12px] leading-relaxed text-[var(--color-ghost)]">
-        没有查到这个模型的任何公开编程评测成绩。
+        {dict.ui.ledger.empty1}
         <br />
-        这表示「没人公开测过它」，不表示「它不会写代码」——本站不会用估算值填补空缺。
+        {dict.ui.ledger.empty2}
       </p>
     );
   }
@@ -50,10 +52,10 @@ export function CodingLedger({ scores }: { scores: BenchmarkScore[] }) {
                       rel="noreferrer"
                       className="hover:text-[var(--color-gold)]"
                     >
-                      {league.label}
+                      {leagueName(league, lang)}
                     </a>
                   ) : (
-                    league.label
+                    leagueName(league, lang)
                   )}
                 </span>
                 <span className="shrink-0 text-right text-xs tabular-nums text-[var(--color-gold)]">
@@ -62,18 +64,14 @@ export function CodingLedger({ scores }: { scores: BenchmarkScore[] }) {
               </div>
               <div className="mt-0.5 flex items-baseline justify-between gap-3">
                 <span className="text-[12px] leading-snug text-[var(--color-ghost)]">
-                  {league.blurb}
+                  {leagueDescription(league, lang)}
                 </span>
                 <span
                   className="shrink-0 text-[12px]"
                   style={{ color: thirdParty ? 'var(--color-newborn)' : 'var(--color-ghost)' }}
-                  title={
-                    thirdParty
-                      ? '由榜单方或独立第三方测出并公布'
-                      : '由厂商在自家系统卡或发布博客里公布，没有经过独立复核'
-                  }
+                  title={thirdParty ? dict.ui.ledger.thirdPartyHint : dict.ui.ledger.selfReportHint}
                 >
-                  {attributionLabel(s.attribution)}
+                  {attributionText(s.attribution, lang)}
                 </span>
               </div>
               {source && (
@@ -91,9 +89,9 @@ export function CodingLedger({ scores }: { scores: BenchmarkScore[] }) {
         })}
       </ul>
       <p className="mt-3 text-[12px] leading-relaxed text-[var(--color-ghost)]">
-        这些分数<strong className="text-[var(--color-parchment)]">不可互相比较</strong>。同一个模型换一套评测脚手架就能差二三十分：
-        SWE-bench Verified 的中位数是 75.7，而难度更高的 SWE-Bench Pro 只有 41.0。
-        广场上的能力条因此显示的是「在同一把尺子下排第几」，而不是分数本身。
+        {dict.ui.ledger.footnotePre}
+        <strong className="text-[var(--color-parchment)]">{dict.ui.ledger.footnoteStrong}</strong>
+        {dict.ui.ledger.footnotePost}
       </p>
     </>
   );

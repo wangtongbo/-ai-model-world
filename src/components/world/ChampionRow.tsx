@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import type { Champion } from '@/lib/champions';
-import { profileFor } from '@/data/vendor-registry';
+import { profileFor, vendorName } from '@/data/vendor-registry';
 import { readableOnDark } from '@/lib/color';
-import { getDict, type Lang } from '@/lib/i18n';
+import { getDict, langLink, type Lang } from '@/lib/i18n';
 import { VendorCrest } from '@/components/character/VendorCrest';
 import { SectionFrame } from '@/components/world/SectionFrame';
 import { asset } from '@/lib/asset';
@@ -93,7 +93,7 @@ export function ChampionRow({
           return (
             <Link
               key={c.key}
-              href={`/model/${c.model.slug}/`}
+              href={langLink(lang, `/model/${c.model.slug}/`)}
               className="group relative w-[200px] shrink-0 snap-start outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-gold)] sm:w-auto"
               title={`${c.model.name} · ${c.detail}`}
             >
@@ -137,9 +137,9 @@ export function ChampionRow({
                     motif={profile.motif}
                     accentColor={profile.accentColor}
                     size={12}
-                    title={profile.nameZh}
+                    title={vendorName(profile, lang)}
                   />
-                  <span className="truncate">{profile.nameZh}</span>
+                  <span className="truncate">{vendorName(profile, lang)}</span>
                 </div>
                 <div className="mt-2 font-pixel text-[18px] leading-none text-[var(--color-gold)]">
                   {c.figure}

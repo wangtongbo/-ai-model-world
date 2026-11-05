@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Lineage } from '@/lib/lineage';
 import type { ModelKind } from '@/lib/kind';
-import { getDict, type Lang } from '@/lib/i18n';
+import { getDict, langLink, type Lang } from '@/lib/i18n';
 
 /**
  * 同系列历代的时间轴。左旧右新，当前这一代高亮。
@@ -13,8 +13,8 @@ import { getDict, type Lang } from '@/lib/i18n';
  * 同一条线、同一种类型的模型，ECI 之间是可比的，一眼就能看出哪一代是真正的跨越。
  */
 
-function monthOf(iso: string | null): string {
-  if (!iso) return '日期不详';
+function monthOf(iso: string | null, unknownDate: string): string {
+  if (!iso) return unknownDate;
   return `${iso.slice(0, 4)}.${iso.slice(5, 7)}`;
 }
 
@@ -41,16 +41,16 @@ export function LineageStrip({
         <h2
           className="text-sm text-[var(--color-parchment)]"
           // 判定规则写在悬停里而不是标题下面：需要解释的东西不占正文版面
-          title={`同一厂商、名字里第一个数字之前那一段相同、且同为${kindLabel}模型的，算作一个系列`}
+          title={dict.ui.lineage.ruleHint(kindLabel)}
         >
-          {lineage.stem} 系列的{kindLabel}模型 · 按发布时间
+          {dict.ui.lineage.heading(lineage.stem, kindLabel)}
         </h2>
         <span className="text-[12px] text-[var(--color-ghost)]">
           {windowed
-            ? `共 ${lineage.total} 个 · 这里是相邻的 ${lineage.entries.length} 个 · `
-            : `共 ${lineage.total} 个 · `}
-          <Link href={`/vendor/${vendorId}/`} className="hover:text-[var(--color-gold)]">
-            {vendorName}的全部模型 →
+            ? dict.ui.lineage.totalWindowed(lineage.total, lineage.entries.length)
+            : dict.ui.lineage.totalAll(lineage.total)}
+          <Link href={langLink(lang, `/vendor/${vendorId}/`)} className="hover:text-[var(--color-gold)]">
+            {dict.ui.lineage.vendorAll(vendorName)}
           </Link>
         </span>
       </div>
@@ -76,7 +76,7 @@ export function LineageStrip({
                   </span>
                 )}
                 <Link
-                  href={`/model/${m.slug}/`}
+                  href={langLink(lang, `/model/${m.slug}/`)}
                   aria-current={current ? 'page' : undefined}
                   className="flex w-full flex-col gap-1 border-2 px-2 py-1.5 hover:border-[var(--color-gold)] sm:w-[124px]"
                   style={{
@@ -86,7 +86,7 @@ export function LineageStrip({
                   }}
                 >
                   <span className="font-pixel text-[12px] leading-none text-[var(--color-ghost)]">
-                    {monthOf(m.releaseDate)}
+                    {monthOf(m.releaseDate, dict.ui.lineage.dateUnknown)}
                   </span>
                   <span
                     className="line-clamp-2 text-[13px] leading-tight"
@@ -95,7 +95,7 @@ export function LineageStrip({
                     {m.name}
                   </span>
                   <span className="mt-auto font-pixel text-[12px] leading-none text-[var(--color-parchment-dim)]">
-                    {eci != null ? `ECI ${eci.toFixed(1)}` : m.retiredAt ? '已退役' : '未参评'}
+                    {eci != null ? `ECI ${eci.toFixed(1)}` : m.retiredAt ? dict.status.retired : dict.unknown.notRanked}
                   </span>
                 </Link>
               </li>

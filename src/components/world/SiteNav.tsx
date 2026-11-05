@@ -1,6 +1,8 @@
 import Link from 'next/link';
-import { getDict, type Lang } from '@/lib/i18n';
+import { Suspense } from 'react';
+import { getDict, langLink, type Lang } from '@/lib/i18n';
 import { GlobalSearch } from './GlobalSearch';
+import { LangSwitcher } from './LangSwitcher';
 
 /**
  * 全站导航。
@@ -27,7 +29,7 @@ export function SiteNav({ current, lang }: { current: NavKey | null; lang: Lang 
   const dict = getDict(lang);
   return (
     <nav
-      aria-label="主导航"
+      aria-label={dict.a11y.mainNav}
       // 窄屏整条占满：搜索框要跟着撑开，否则它的结果面板挂在一个两百像素宽的锚点上，会溢出屏幕左边
       className="relative z-10 flex w-full flex-wrap items-center justify-center gap-1.5 px-0 py-2 sm:w-auto sm:gap-2"
     >
@@ -35,13 +37,13 @@ export function SiteNav({ current, lang }: { current: NavKey | null; lang: Lang 
         搜索框在三个按钮左边。它是入口里最宽的一个，放右边会把导航推得忽长忽短，
         而且读者的阅读顺序是从左开始——「先想去哪，找不到再点固定入口」。
       */}
-      <GlobalSearch />
+      <GlobalSearch lang={lang} />
       {ITEMS.map((item) => {
         const active = item.key === current;
         return (
           <Link
             key={item.key}
-            href={item.href}
+            href={langLink(lang, item.href)}
             // 当前页只用 aria-current。aria-pressed 是给切换按钮的，
             // 放在链接上会让读屏软件把导航念成一排「已按下」的开关。
             aria-current={active ? 'page' : undefined}
@@ -51,6 +53,13 @@ export function SiteNav({ current, lang }: { current: NavKey | null; lang: Lang 
           </Link>
         );
       })}
+      {/*
+        语言切换器。useSearchParams 会让 Suspense 边界以内退化为客户端渲染，
+        所以只包住它自己，导航的其余部分照常静态渲染。
+      */}
+      <Suspense fallback={null}>
+        <LangSwitcher lang={lang} />
+      </Suspense>
     </nav>
   );
 }

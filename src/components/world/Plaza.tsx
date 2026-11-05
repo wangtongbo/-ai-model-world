@@ -7,7 +7,7 @@ import { buildPersonaContext, personaFor } from '@/lib/persona';
 import { newerThanFlagship } from '@/lib/roster';
 import type { ContinentRoster, PlazaTier, RosterEntry } from '@/lib/roster';
 import type { Continent, ModelRecord, Vendor } from '@/lib/types';
-import { getDict, type Lang } from '@/lib/i18n';
+import { getDict, langLink, type Lang } from '@/lib/i18n';
 import { SectionFrame } from './SectionFrame';
 
 /**
@@ -89,8 +89,8 @@ function NewerNote({ model, lang }: { model: ModelRecord; lang: Lang }) {
   const dict = getDict(lang);
   return (
     <Link
-      href={`/model/${model.slug}/`}
-      title={dict.plaza.newerHint(model.name, model.releaseDate ?? '未知日期')}
+      href={langLink(lang, `/model/${model.slug}/`)}
+      title={dict.plaza.newerHint(model.name, model.releaseDate ?? dict.ui.plaza.unknownDate)}
       className="mt-1 flex items-center gap-1 border-2 border-t-0 border-[var(--color-ink)] px-2 py-1 text-[12px] leading-tight text-[var(--color-parchment-dim)] transition-colors hover:text-[var(--color-gold)]"
       style={{ background: 'rgb(255 255 255 / 0.04)' }}
     >
@@ -132,10 +132,10 @@ export function Plaza({
   // 「百万记性」放在 485 个模型里算稀有，放在一屏旗舰里就人手一块了
   const traitCtx = buildTraitContext(allModels);
   const displayed = rosters.flatMap((r) => [...r.entries, ...r.others].map((e) => e.model));
-  const traitMap = assignTraits(displayed, traitCtx, now);
+  const traitMap = assignTraits(displayed, traitCtx, now, 3, lang);
   // 能力条同样跟全体模型比。只跟同屏这几十个比的话，「记性」会因为旗舰模型
   // 普遍是百万上下文而全部顶格，条子就白画了。
-  const aptitude = buildAptitudeScale(allModels);
+  const aptitude = buildAptitudeScale(allModels, lang);
   // 人设要在**全体模型**里评「谁是第一」。只跟同屏这几十个比的话，
   // 「全世界最便宜的模型」会颁给广场上最便宜的那个，而不是真的全球最便宜。
   const personaCtx = buildPersonaContext(allModels, vendors);
@@ -165,7 +165,7 @@ export function Plaza({
           scales={scales}
           overlaysNeeded={overlaysNeeded}
           aptitude={aptitude.rowOf(entry.model)}
-          persona={personaFor(entry.model, personaCtx)}
+          persona={personaFor(entry.model, personaCtx, lang)}
           pruning={pruning}
         />
         {newer && <NewerNote model={newer} lang={lang} />}

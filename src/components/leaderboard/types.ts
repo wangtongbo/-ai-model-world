@@ -14,6 +14,8 @@ import type { Continent } from '@/lib/types';
 export interface LeanVendor {
   id: string;
   nameZh: string;
+  /** 国际通用名。en/ja/ko 一律用它展示（厂商名不翻译）。 */
+  nameEn: string;
   motif: string;
   accent: string;
   continent: Continent;

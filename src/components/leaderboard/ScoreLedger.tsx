@@ -1,7 +1,16 @@
 import Link from 'next/link';
 import type { ModelRecord } from '@/lib/types';
-import { attributionLabel } from '@/data/coding-leagues';
-import { BENCHMARK_CATEGORIES, benchmarkOf, isCodingBenchmark } from '@/data/benchmark-registry';
+import { attributionText } from '@/data/coding-leagues';
+import {
+  BENCHMARK_CATEGORIES,
+  benchmarkDescription,
+  benchmarkName,
+  benchmarkOf,
+  categoryName,
+  isCodingBenchmark,
+  type BenchmarkCategory,
+} from '@/data/benchmark-registry';
+import { getDict, langLink, type Lang } from '@/lib/i18n';
 import { outbound } from '@/lib/outbound';
 import {
   allScoresOf,
@@ -36,12 +45,22 @@ function poolsFor(models: ModelRecord[]): ScorePools {
   return pools;
 }
 
-export function ScoreLedger({ model, models }: { model: ModelRecord; models: ModelRecord[] }) {
+export function ScoreLedger({
+  model,
+  models,
+  lang,
+}: {
+  model: ModelRecord;
+  models: ModelRecord[];
+  lang: Lang;
+}) {
+  const dict = getDict(lang);
   const scores = allScoresOf(model).filter((s) => !isCodingBenchmark(s.league));
   if (scores.length === 0) return null;
 
   const pools = poolsFor(models);
-  const order = new Map(BENCHMARK_CATEGORIES.map((c, i) => [c, i]));
+  const order = new Map(BENCHMARK_CATEGORIES.map((c, i) => [c.id, i]));
+  const catLabel = new Map(BENCHMARK_CATEGORIES.map((c) => [c.id, categoryName(c, lang)]));
 
   const rows = scores
     .map((s) => {
@@ -57,7 +76,7 @@ export function ScoreLedger({ model, models }: { model: ModelRecord; models: Mod
         a.s.league.localeCompare(b.s.league),
     );
 
-  const groups: { category: string; rows: typeof rows }[] = [];
+  const groups: { category: BenchmarkCategory; rows: typeof rows }[] = [];
   for (const r of rows) {
     const last = groups[groups.length - 1];
     if (last && last.category === r.info.category) last.rows.push(r);
@@ -67,14 +86,14 @@ export function ScoreLedger({ model, models }: { model: ModelRecord; models: Mod
   return (
     <section className="mt-6">
       <div className="pixel-panel-dark p-5">
-        <h2 className="mb-1 text-sm text-[var(--color-parchment)]">全部成绩（按榜单分列）</h2>
+        <h2 className="mb-1 text-sm text-[var(--color-parchment)]">{dict.ui.scoreLedger.title}</h2>
         <p className="mb-3 text-[13px] leading-relaxed text-[var(--color-ghost)]">
-          名次的分母是在同一个榜、由同一类测量方测过的模型数，不是全站模型数。不同榜的分数不可互相比较。
+          {dict.ui.scoreLedger.blurb}
         </p>
 
         {groups.map((g) => (
           <div key={g.category} className="mb-3 last:mb-0">
-            <div className="mb-1 text-[13px] text-[var(--color-gold)]">{g.category}</div>
+            <div className="mb-1 text-[13px] text-[var(--color-gold)]">{catLabel.get(g.category) ?? g.category}</div>
             <ul className="flex flex-col">
               {g.rows.map(({ s, info, rank, total }) => {
                 const thirdParty = s.attribution === 'third-party';
@@ -86,35 +105,33 @@ export function ScoreLedger({ model, models }: { model: ModelRecord; models: Mod
                       <span className="text-[14px] text-[var(--color-parchment)]">
                         {trackId ? (
                           <Link
-                            href={`/leaderboard/?track=${encodeURIComponent(trackId)}`}
+                            href={langLink(lang, `/leaderboard/?track=${encodeURIComponent(trackId)}`)}
                             className="hover:text-[var(--color-gold)]"
-                            title="去排行榜看这个榜的完整名单"
+                            title={dict.ui.scoreLedger.trackLinkTitle}
                           >
-                            {info.label}
+                            {benchmarkName(info, lang)}
                           </Link>
                         ) : (
-                          info.label
+                          benchmarkName(info, lang)
                         )}
                       </span>
                       <span className="shrink-0 text-right text-[14px] tabular-nums text-[var(--color-gold)]">
-                        {formatLeagueScore(s.league, s.score, s.unit)}
+                        {formatLeagueScore(s.league, s.score, s.unit, lang)}
                         <span className="ml-2 text-[13px] text-[var(--color-parchment-dim)]">
-                          第 {rank} / {total}
+                          {dict.ui.scoreLedger.rankOf(rank, total)}
                         </span>
                       </span>
                     </div>
                     <div className="mt-0.5 flex items-baseline justify-between gap-3">
-                      <span className="text-[13px] leading-snug text-[var(--color-ghost)]">{info.blurb}</span>
+                      <span className="text-[13px] leading-snug text-[var(--color-ghost)]">
+                        {benchmarkDescription(info, lang)}
+                      </span>
                       <span
                         className="shrink-0 text-[13px]"
                         style={{ color: thirdParty ? 'var(--color-newborn)' : 'var(--color-ghost)' }}
-                        title={
-                          thirdParty
-                            ? '由榜单方或独立第三方测出并公布'
-                            : '由厂商在自家系统卡或发布博客里公布，没有经过独立复核'
-                        }
+                        title={thirdParty ? dict.ui.ledger.thirdPartyHint : dict.ui.ledger.selfReportHint}
                       >
-                        {attributionLabel(s.attribution)}
+                        {attributionText(s.attribution, lang)}
                       </span>
                     </div>
                     {source && (

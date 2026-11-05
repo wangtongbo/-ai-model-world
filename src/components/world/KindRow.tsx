@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import type { KindGroup } from '@/lib/kind';
-import { profileFor } from '@/data/vendor-registry';
+import { profileFor, vendorName } from '@/data/vendor-registry';
 import { readableOnDark } from '@/lib/color';
-import { getDict, type Lang } from '@/lib/i18n';
+import { getDict, langLink, type Lang } from '@/lib/i18n';
 import { SectionFrame } from '@/components/world/SectionFrame';
 import { asset } from '@/lib/asset';
 
@@ -90,7 +90,7 @@ export function KindRow({
             return (
               <Link
                 key={g.kind}
-                href={`/leaderboard/all/?kind=${g.kind}`}
+                href={langLink(lang, `/leaderboard/all/?kind=${g.kind}`)}
                 className="group relative w-[200px] shrink-0 snap-start outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-gold)] sm:w-auto"
                 title={`${dict.kind.hint[g.kind]}。${dict.kind.viewAll(g.count, label)}`}
               >
@@ -121,7 +121,7 @@ export function KindRow({
                           slug={m.slug}
                           accent={readableOnDark(profile.accentColor, 0.42)}
                           hasSprite={spriteSlugs.has(m.slug)}
-                          title={`${m.name} · ${profile.nameZh}`}
+                          title={`${m.name} · ${vendorName(profile, lang)}`}
                         />
                       );
                     })}

@@ -1,6 +1,8 @@
 import type { ModelRecord } from './types';
 import { buildValueScore, daysSince } from './derive';
 import { buildCodingConsensus } from './coding-consensus';
+import { libDict } from './i18n/lib-dict';
+import { DEFAULT_LANG, type Lang } from './i18n/types';
 
 /**
  * 自动特征标签。
@@ -83,7 +85,8 @@ const NEVER_PRUNE = new Set(['strongest', 'best-coder', 'best-memory', 'cheapest
 const COMMON_THRESHOLD = 0.35;
 
 /** 按稀有度从高到低排列。顺序即优先级，裁剪与截断交给 assignTraits。 */
-function matchTraits(model: ModelRecord, ctx: TraitContext, now: Date): Trait[] {
+function matchTraits(model: ModelRecord, ctx: TraitContext, now: Date, lang: Lang): Trait[] {
+  const d = libDict[lang].traits;
   const out: Trait[] = [];
   const push = (t: Trait) => out.push(t);
 
@@ -95,63 +98,63 @@ function matchTraits(model: ModelRecord, ctx: TraitContext, now: Date): Trait[] 
   const age = daysSince(model.releaseDate, now);
 
   if (eci === 1) {
-    push({ id: 'strongest', label: '全球第一', tone: 'crown', title: '综合智力指数全球第一' });
+    push({ id: 'strongest', label: d.label.strongest, tone: 'crown', title: d.strongestTitle });
   } else if (eci != null && eci <= 5) {
-    push({ id: 'top5', label: '五强', tone: 'crown', title: `综合智力第 ${eci} 名` });
+    push({ id: 'top5', label: d.label.top5, tone: 'crown', title: d.topNTitle(eci) });
   } else if (eci != null && eci <= 10) {
-    push({ id: 'top10', label: '十强', tone: 'crown', title: `综合智力第 ${eci} 名` });
+    push({ id: 'top10', label: d.label.top10, tone: 'crown', title: d.topNTitle(eci) });
   }
 
   if (swe === 1) {
-    push({ id: 'best-coder', label: '编程第一', tone: 'cool', title: '第三方编程榜平均排名全球第一' });
+    push({ id: 'best-coder', label: d.label['best-coder'], tone: 'cool', title: d.bestCoderTitle });
   } else if (swe != null && swe <= 5) {
-    push({ id: 'coder', label: '编程好手', tone: 'cool', title: `第三方编程榜平均排名第 ${swe} 名` });
+    push({ id: 'coder', label: d.label.coder, tone: 'cool', title: d.coderTitle(swe) });
   }
 
   if (ctxRank === 1) {
-    push({ id: 'best-memory', label: '记性最好', tone: 'cool', title: '上下文窗口全球最大' });
+    push({ id: 'best-memory', label: d.label['best-memory'], tone: 'cool', title: d.bestMemoryTitle });
   } else if (model.contextWindow != null && model.contextWindow >= 1_000_000) {
-    push({ id: 'million', label: '百万记性', tone: 'cool', title: '上下文窗口达到百万 tokens' });
+    push({ id: 'million', label: d.label.million, tone: 'cool', title: d.millionTitle });
   }
 
   if (value != null && value <= 3) {
-    push({ id: 'best-value', label: '性价比之王', tone: 'good', title: `每块钱买到的智力排第 ${value}` });
+    push({ id: 'best-value', label: d.label['best-value'], tone: 'good', title: d.bestValueTitle(value) });
   }
 
   if (cheap === 1) {
-    push({ id: 'cheapest', label: '全场最便宜', tone: 'good', title: '输出单价全球最低' });
+    push({ id: 'cheapest', label: d.label.cheapest, tone: 'good', title: d.cheapestTitle });
   } else if (cheap != null && ctx.pricedCount > 0 && cheap <= ctx.pricedCount * 0.15) {
-    push({ id: 'cheap', label: '白菜价', tone: 'good', title: '输出单价处于最便宜的 15%' });
+    push({ id: 'cheap', label: d.label.cheap, tone: 'good', title: d.cheapTitle });
   } else if (
     cheap != null &&
     ctx.pricedCount > 0 &&
     cheap > ctx.pricedCount * 0.95
   ) {
-    push({ id: 'costly', label: '天价', tone: 'costly', title: '输出单价处于最贵的 5%' });
+    push({ id: 'costly', label: d.label.costly, tone: 'costly', title: d.costlyTitle });
   }
 
   if (age != null && age <= 30) {
-    push({ id: 'newborn', label: '刚出生', tone: 'good', title: `${age} 天前发布` });
+    push({ id: 'newborn', label: d.label.newborn, tone: 'good', title: d.newbornTitle(age) });
   } else if (age != null && age > YEAR * 2) {
     push({
       id: 'elder',
-      label: '元老',
+      label: d.label.elder,
       tone: 'aged',
-      title: `发布已超过 ${Math.floor(age / YEAR)} 年`,
+      title: d.elderTitle(Math.floor(age / YEAR)),
     });
   }
 
   if (model.retiredAt) {
     // 退役是最重要的状态，必须排到最前面
-    out.unshift({ id: 'retired', label: '已退役', tone: 'aged', title: `${model.retiredAt} 下线` });
+    out.unshift({ id: 'retired', label: d.label.retired, tone: 'aged', title: d.retiredTitle(model.retiredAt) });
   }
 
   // 兜底标签放在最后，只有前面全没命中、且经过稀有度裁剪后依然空手时才会露面
   if (model.openWeights === true) {
-    push({ id: 'open', label: '开源', tone: 'good', title: '权重公开，可自行部署' });
+    push({ id: 'open', label: d.label.open, tone: 'good', title: d.openTitle });
   }
   if (model.capabilities.reasoning === true) {
-    push({ id: 'reasoning', label: '会深思', tone: 'cool', title: '推理型模型，回答前会先思考' });
+    push({ id: 'reasoning', label: d.label.reasoning, tone: 'cool', title: d.reasoningTitle });
   }
 
   return out;
@@ -172,12 +175,13 @@ export function assignTraits(
   ctx: TraitContext,
   now: Date,
   maxPerModel = 3,
+  lang: Lang = DEFAULT_LANG,
 ): Map<string, Trait[]> {
   const matched = new Map<string, Trait[]>();
   const freq = new Map<string, number>();
 
   for (const m of models) {
-    const traits = matchTraits(m, ctx, now);
+    const traits = matchTraits(m, ctx, now, lang);
     matched.set(m.id, traits);
     for (const t of traits) freq.set(t.id, (freq.get(t.id) ?? 0) + 1);
   }

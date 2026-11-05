@@ -15,6 +15,14 @@ function bilibiliSearch(modelName: string): string {
   return `https://search.bilibili.com/all?keyword=${encodeURIComponent(`${modelName} 测评`)}`;
 }
 
+/**
+ * YouTube 搜索页，非中文版的「评测视频」入口（docs/I18N.md 的产品决策）。
+ * 同样是搜索词现算，不需要维护任何对应表。
+ */
+function youtubeSearch(modelName: string): string {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${modelName} review`)}`;
+}
+
 function PlayIcon() {
   return (
     <svg width={12} height={12} viewBox="0 0 12 12" shapeRendering="crispEdges" aria-hidden>
@@ -51,12 +59,14 @@ export function ReviewLinks({ modelName, slug, lang }: { modelName: string; slug
   const dict = getDict(lang);
   const cls =
     'pixel-button flex items-center gap-1.5 px-2 py-0.5 text-[12px] leading-tight text-[var(--color-ink)] hover:bg-[var(--color-gold)]';
+  // 非中文版：视频入口换成 YouTube 搜索；鱼皮导航的文章合集只有中文内容，不渲染
+  const videoHref = lang === 'zh' ? bilibiliSearch(modelName) : youtubeSearch(modelName);
   return (
     <div className="mt-3 flex flex-wrap gap-2">
       {/* 站内的动作排在两个出站链接前面 */}
-      <CompareButton slug={slug} className={cls} />
+      <CompareButton slug={slug} lang={lang} className={cls} />
       <a
-        href={bilibiliSearch(modelName)}
+        href={videoHref}
         target="_blank"
         rel="noopener noreferrer"
         title={dict.reviews.videoHint(modelName)}
@@ -65,16 +75,18 @@ export function ReviewLinks({ modelName, slug, lang }: { modelName: string; slug
         <PlayIcon />
         {dict.reviews.video}
       </a>
-      <a
-        href={ARTICLE_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        title={dict.reviews.articleHint}
-        className={cls}
-      >
-        <DocIcon />
-        {dict.reviews.article}
-      </a>
+      {lang === 'zh' && (
+        <a
+          href={ARTICLE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={dict.reviews.articleHint}
+          className={cls}
+        >
+          <DocIcon />
+          {dict.reviews.article}
+        </a>
+      )}
     </div>
   );
 }
