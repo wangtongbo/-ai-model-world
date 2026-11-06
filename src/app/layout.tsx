@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { DEFAULT_LANG, getDict, htmlLang, LANG_PREF_KEY } from '@/lib/i18n';
 import { asset } from '@/lib/asset';
@@ -60,6 +61,18 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: langDetect }} />
         <style dangerouslySetInnerHTML={{ __html: fontFace }} />
+        {/*
+          Cloudflare Web Analytics：无 Cookie 的聚合访问统计（隐私页有交代）。
+          module 脚本天然 defer，不阻塞渲染。只在生产构建注入，dev 的点击不污染统计。
+        */}
+        {process.env.NODE_ENV === 'production' && (
+          <Script
+            type="module"
+            src="https://static.cloudflareinsights.com/beacon.min.js"
+            data-cf-beacon='{"token": "aa0e290e6b6b4abeb8c733113bb76310"}'
+            strategy="afterInteractive"
+          />
+        )}
       </head>
       {/*
         页脚不在这里渲染：根 layout 拿不到 [lang] 段的参数，而非中文版的页脚

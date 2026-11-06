@@ -308,8 +308,13 @@ const zh: PagesDict = {
     updated: '最后更新：2026-11-06',
     sections: [
       {
+        h: '网站统计（Cloudflare Web Analytics）',
+        body: '本站接入了 Cloudflare Web Analytics 来了解整体访问情况（页面浏览量、来源、设备与国家等聚合信息）。它不使用 Cookie、不收集 IP 地址等个人数据、不做跨站跟踪，所有数据都是聚合统计。详见',
+        link: { text: 'Cloudflare 隐私政策', href: 'https://www.cloudflare.com/privacypolicy/' },
+      },
+      {
         h: '我们收集什么',
-        body: '什么也不收集。本站是纯静态网站：没有账号系统、没有表单、没有统计或广告脚本。你的浏览行为不会发送给本站——本站甚至没有一台能接收数据的应用服务器，所有页面都是构建期生成的静态文件。',
+        body: '除上述聚合统计外，本站不收集任何个人信息：没有账号系统、没有表单、没有广告脚本与跟踪 Cookie。你的浏览行为不会被用于识别你个人——本站甚至没有一台能接收数据的应用服务器，所有页面都是构建期生成的静态文件。',
       },
       {
         h: '浏览器本地存储（localStorage）',
@@ -476,8 +481,13 @@ const en: PagesDict = {
     updated: 'Last updated: 2026-11-06',
     sections: [
       {
+        h: 'Site analytics (Cloudflare Web Analytics)',
+        body: 'This site uses Cloudflare Web Analytics to understand overall traffic (aggregated page views, referrers, device types, and countries). It uses no cookies, collects no personal data such as IP addresses, and does not track you across sites — every metric is an aggregate statistic. See the',
+        link: { text: 'Cloudflare Privacy Policy', href: 'https://www.cloudflare.com/privacypolicy/' },
+      },
+      {
         h: 'What we collect',
-        body: 'Nothing. This is a purely static website: no accounts, no forms, no analytics or ad scripts. Your browsing never reaches us — there isn’t even an application server that could receive it; every page is a static file generated at build time.',
+        body: 'Beyond the aggregate statistics above, this site collects no personal information: no accounts, no forms, no ad scripts, and no tracking cookies. Your browsing is never used to identify you — there isn’t even an application server that could receive your data; every page is a static file generated at build time.',
       },
       {
         h: 'Browser local storage',
@@ -644,8 +654,13 @@ const ja: PagesDict = {
     updated: '最終更新：2026-11-06',
     sections: [
       {
+        h: 'アクセス解析（Cloudflare Web Analytics）',
+        body: '本サイトではアクセス状況（ページビュー、参照元、デバイス、国などの集計情報）を把握するため、Cloudflare Web Analytics を利用しています。Cookie は使わず、IP アドレスなどの個人データは収集せず、サイト横断のトラッキングも行いません。すべて集計統計です。詳しくは',
+        link: { text: 'Cloudflare プライバシーポリシー', href: 'https://www.cloudflare.com/privacypolicy/' },
+      },
+      {
         h: '収集するもの',
-        body: '何も収集しません。本サイトは完全な静的サイトで、アカウント、フォーム、解析・広告スクリプトは一切ありません。閲覧行動が私たちに送信されることはありません。そもそも受け取るためのアプリケーションサーバーがなく、全ページはビルド時に生成された静的ファイルです。',
+        body: '上記の集計統計を除き、本サイトは個人情報を一切収集しません。アカウント、フォーム、広告スクリプト、トラッキング Cookie はありません。閲覧行動が個人の特定に使われることはありません。そもそもデータを受け取るアプリケーションサーバーがなく、全ページはビルド時に生成された静的ファイルです。',
       },
       {
         h: 'ブラウザのローカルストレージ',
@@ -812,8 +827,13 @@ const ko: PagesDict = {
     updated: '최종 업데이트: 2026-11-06',
     sections: [
       {
+        h: '사이트 분석(Cloudflare Web Analytics)',
+        body: '이 사이트는 전체 방문 현황(페이지 조회수, 유입 경로, 기기, 국가 등 집계 정보)을 파악하기 위해 Cloudflare Web Analytics 를 사용합니다. 쿠키를 사용하지 않고 IP 주소 같은 개인 데이터를 수집하지 않으며 사이트 간 추적도 하지 않습니다. 모든 데이터는 집계 통계입니다. 자세한 내용은',
+        link: { text: 'Cloudflare 개인정보 처리방침', href: 'https://www.cloudflare.com/privacypolicy/' },
+      },
+      {
         h: '수집하는 정보',
-        body: '아무것도 수집하지 않습니다. 이 사이트는 순수 정적 사이트로, 계정도, 폼도, 분석·광고 스크립트도 없습니다. 여러분의 열람 행위는 저희에게 전송되지 않습니다. 애초에 데이터를 받을 애플리케이션 서버가 없으며, 모든 페이지는 빌드 시점에 생성된 정적 파일입니다.',
+        body: '위의 집계 통계를 제외하면 이 사이트는 어떤 개인정보도 수집하지 않습니다. 계정도, 폼도, 광고 스크립트도, 추적 쿠키도 없습니다. 여러분의 열람 행위가 개인 식별에 사용되는 일은 없습니다. 애초에 데이터를 받을 애플리케이션 서버가 없으며, 모든 페이지는 빌드 시점에 생성된 정적 파일입니다.',
       },
       {
         h: '브라우저 로컬 스토리지',
