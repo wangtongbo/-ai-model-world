@@ -1,9 +1,34 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import { DEFAULT_LANG, getDict, htmlLang } from '@/lib/i18n';
+import { DEFAULT_LANG, getDict, htmlLang, LANG_PREF_KEY } from '@/lib/i18n';
 import { asset } from '@/lib/asset';
 
 const dict = getDict(DEFAULT_LANG);
+
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+
+/**
+ * 访客语言自动跳转（运营者决策，见 docs/I18N.md）。
+ *
+ * 纯静态导出没有服务器，只能在客户端做：以内联脚本抢在首帧渲染前执行，
+ * 避免非中文访客先看到一闪而过的中文。
+ * 规则：已身处某个语言镜像（/en/、/ja/、/ko/）就记住选择并放行；
+ * 在中文版路径上时——有显式选择（LangSwitcher 写过的）按选择走，
+ * 没有就按浏览器语言判定，判不出来兜底 en。蜘蛛不执行 JS，
+ * 看到的仍是根路径中文版与各语言互为 alternates 的完整链接图。
+ */
+const langDetect = `(function(){try{
+var rest=location.pathname.slice('${BASE}'.length);
+var m=/^\\/(en|ja|ko)(?=\\/|$)/.exec(rest);
+var pref=localStorage.getItem('${LANG_PREF_KEY}');
+if(m){if(pref!==m[1])localStorage.setItem('${LANG_PREF_KEY}',m[1]);return;}
+if(pref!=='zh'&&pref!=='en'&&pref!=='ja'&&pref!=='ko'){
+var n=((navigator.languages&&navigator.languages[0])||navigator.language||'').toLowerCase();
+pref=n.indexOf('zh')===0?'zh':n.indexOf('ja')===0?'ja':n.indexOf('ko')===0?'ko':'en';
+localStorage.setItem('${LANG_PREF_KEY}',pref);
+}
+if(pref!=='zh')location.replace('${BASE}/'+pref+(rest===''?'/':rest)+location.search+location.hash);
+}catch(e){}})()`;
 
 /*
  * 中文像素字体的 @font-face 内联在这里，不放 globals.css。
@@ -33,6 +58,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang={htmlLang(DEFAULT_LANG)} data-scroll-behavior="smooth" className="h-full">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: langDetect }} />
         <style dangerouslySetInnerHTML={{ __html: fontFace }} />
       </head>
       {/*

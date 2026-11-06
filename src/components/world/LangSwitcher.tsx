@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { getDict, LANGS, type Lang } from '@/lib/i18n';
+import { getDict, LANG_PREF_KEY, LANGS, type Lang } from '@/lib/i18n';
 
 /**
  * 语言切换器。挂在导航条上，四种语言的页面都显示。
@@ -45,6 +45,14 @@ export function LangSwitcher({ lang }: { lang: Lang }) {
           <Link
             key={l}
             href={langHref(l, pathname, query)}
+            // 显式选择要压过浏览器语言自动跳转（根 layout 的内联脚本读这个键）
+            onClick={() => {
+              try {
+                localStorage.setItem(LANG_PREF_KEY, l);
+              } catch {
+                /* 隐私模式写不进去就算了，下次访问仍按浏览器语言走 */
+              }
+            }}
             className="px-1 text-[12px] leading-tight text-[var(--color-ghost)] hover:text-[var(--color-parchment)]"
           >
             {NAMES[l]}

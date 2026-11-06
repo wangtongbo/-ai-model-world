@@ -7,6 +7,12 @@ export const LANGS = ['zh', 'en', 'ja', 'ko'] as const;
 export type Lang = (typeof LANGS)[number];
 export const DEFAULT_LANG: Lang = 'zh';
 
+/**
+ * 访客语言选择的 localStorage 键。根 layout 的内联跳转脚本与 LangSwitcher 共用：
+ * 切换器写入显式选择，跳转脚本只在「没有显式选择」时按浏览器语言决定去向。
+ */
+export const LANG_PREF_KEY = 'amw-lang';
+
 export function isLang(s: string): s is Lang {
   return (LANGS as readonly string[]).includes(s);
 }

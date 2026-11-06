@@ -13,7 +13,7 @@ import { libDict, type LibDict } from './lib-dict';
 import { pagesDict, type PagesDict } from './pages-dict';
 import { uiDict, type UiDict } from './ui-dict';
 
-export { DEFAULT_LANG, isLang, LANGS, lt } from './types';
+export { DEFAULT_LANG, isLang, LANG_PREF_KEY, LANGS, lt } from './types';
 export type { Lang, LText } from './types';
 export type { CoreDict };
 
