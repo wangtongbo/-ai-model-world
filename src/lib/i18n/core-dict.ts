@@ -168,6 +168,8 @@ export interface CoreDict {
     dataFrom: string;
     artFrom: string;
     credits: string;
+    /** 隐私与免责页 */
+    privacy: string;
     /** 站长署名前缀，拼成「作者：程序员鱼皮」 */
     author: string;
     /** 引流按钮前的引语 */
@@ -331,6 +333,7 @@ const zh: CoreDict = {
     dataFrom: '数据来自',
     artFrom: '字体',
     credits: '素材署名',
+    privacy: '隐私与免责',
     author: '作者',
     alsoVisit: '也看看',
     sourceCode: '源码开源',
@@ -485,6 +488,7 @@ const en: CoreDict = {
     dataFrom: 'Data from',
     artFrom: 'Font',
     credits: 'Credits',
+    privacy: 'Privacy & Disclaimer',
     author: 'Author',
     alsoVisit: 'Also visit',
     sourceCode: 'Open source',
@@ -639,6 +643,7 @@ const ja: CoreDict = {
     dataFrom: 'データ提供',
     artFrom: 'フォント',
     credits: 'クレジット',
+    privacy: 'プライバシーと免責',
     author: '作者',
     alsoVisit: 'こちらも',
     sourceCode: 'オープンソース',
@@ -793,6 +798,7 @@ const ko: CoreDict = {
     dataFrom: '데이터 제공',
     artFrom: '폰트',
     credits: '크레딧',
+    privacy: '개인정보 및 면책',
     author: '제작',
     alsoVisit: '함께 보기',
     sourceCode: '오픈소스',

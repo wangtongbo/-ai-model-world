@@ -198,6 +198,13 @@ export function SiteFooter({ lang }: { lang: Lang }) {
           >
             {dict.footer.credits}
           </Link>
+          <span className="mx-1 opacity-50">·</span>
+          <Link
+            href={langLink(lang, '/privacy/')}
+            className="text-[var(--color-parchment)] underline decoration-dotted underline-offset-2 hover:text-[var(--color-gold)]"
+          >
+            {dict.footer.privacy}
+          </Link>
         </div>
         <div className="mt-1 flex flex-wrap gap-x-1.5 gap-y-1" title={dict.footer.sourceCodeHint}>
           <span>{dict.footer.sourceCode}</span>

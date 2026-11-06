@@ -160,6 +160,14 @@ export interface PagesDict {
     arenaChanges: string;
     font: string;
   };
+
+  /** 隐私与免责页 */
+  privacy: {
+    title: string;
+    /** 「最后更新」一行 */
+    updated: string;
+    sections: { h: string; body: string; link?: { text: string; href: string } }[];
+  };
 }
 
 const zh: PagesDict = {
@@ -294,6 +302,42 @@ const zh: PagesDict = {
       '。本站做过两处改动：把上游的模型名匹配到站内的模型条目，以及按本站的赛制分列重新排序；分数本身原样引用，未做换算。这些分数是真人盲投的偏好分，与学术评测不可比，因此单独成榜。',
     font: '中文像素字体：Fusion Pixel Font（缝合像素字体），OFL-1.1。',
   },
+
+  privacy: {
+    title: '隐私与免责',
+    updated: '最后更新：2026-11-06',
+    sections: [
+      {
+        h: '我们收集什么',
+        body: '什么也不收集。本站是纯静态网站：没有账号系统、没有表单、没有统计或广告脚本。你的浏览行为不会发送给本站——本站甚至没有一台能接收数据的应用服务器，所有页面都是构建期生成的静态文件。',
+      },
+      {
+        h: '浏览器本地存储（localStorage）',
+        body: '本站唯一会「记住」的东西是你的语言选择。点击语言切换器时，浏览器会把 amw-lang 这个键存进你设备的 localStorage，下次访问直接把你送到对应语言。它只保存在你的浏览器里，不随请求发出，本站无法读取。清除浏览器的站点数据即可删除。',
+      },
+      {
+        h: '托管方（GitHub Pages）',
+        body: '本站由 GitHub Pages 托管。访问时 GitHub 会依据其隐私声明记录标准的服务器日志（如 IP 地址、时间戳），用于安全与运维。详见',
+        link: {
+          text: 'GitHub General Privacy Statement',
+          href: 'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement',
+        },
+      },
+      {
+        h: '第三方链接',
+        body: '站内大量链接指向第三方站点（榜单主页、厂商官网、Bilibili、YouTube 等）。点击之后的行为适用对方站点的隐私政策，与本站无关。',
+      },
+      {
+        h: '数据准确性与免责',
+        body: '站内分数与排名来自公开的第三方评测与厂商自报（自报均已明确标注），每 12 小时同步一次，可能存在滞后、转录误差或上游修正。所有名次与对比仅供参考，不构成任何购买或选型建议。模型与厂商名称为其各自所有者的商标，本站与任何厂商均无隶属关系。',
+      },
+      {
+        h: '联系我们',
+        body: '隐私或数据相关问题，欢迎在本站的 GitHub 仓库提交',
+        link: { text: 'Issue', href: 'https://github.com/liyupi/ai-model-world/issues' },
+      },
+    ],
+  },
 };
 
 const en: PagesDict = {
@@ -425,6 +469,42 @@ const en: PagesDict = {
     arenaChanges:
       '. We made two changes: matching upstream model names to entries on this site, and re-sorting into this site’s per-league layout; the scores themselves are quoted unchanged. These are human blind-vote preference scores, not comparable to academic benchmarks, so they form their own leaderboards.',
     font: 'Chinese pixel font: Fusion Pixel Font, OFL-1.1.',
+  },
+
+  privacy: {
+    title: 'Privacy & Disclaimer',
+    updated: 'Last updated: 2026-11-06',
+    sections: [
+      {
+        h: 'What we collect',
+        body: 'Nothing. This is a purely static website: no accounts, no forms, no analytics or ad scripts. Your browsing never reaches us — there isn’t even an application server that could receive it; every page is a static file generated at build time.',
+      },
+      {
+        h: 'Browser local storage',
+        body: 'The only thing this site remembers is your language choice. When you use the language switcher, your browser stores a key called amw-lang in your device’s localStorage, so your next visit opens in that language. It stays in your browser, is never sent with requests, and we cannot read it. Clear your browser’s site data to remove it.',
+      },
+      {
+        h: 'Hosting (GitHub Pages)',
+        body: 'This site is hosted on GitHub Pages. GitHub records standard server logs (such as IP address and timestamp) under its own privacy statement, for security and operations. See the',
+        link: {
+          text: 'GitHub General Privacy Statement',
+          href: 'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement',
+        },
+      },
+      {
+        h: 'Third-party links',
+        body: 'Pages link out to many third-party sites (benchmark homepages, vendor sites, Bilibili, YouTube, and more). Once you follow them, the destination site’s privacy policy applies, not ours.',
+      },
+      {
+        h: 'Accuracy and disclaimer',
+        body: 'Scores and rankings come from public third-party benchmarks and vendor self-reports (self-reported figures are always labeled), synced every 12 hours, and may lag, contain transcription errors, or be revised upstream. All rankings and comparisons are for reference only and do not constitute purchasing or selection advice. Model and vendor names are trademarks of their respective owners; this site is not affiliated with any vendor.',
+      },
+      {
+        h: 'Contact',
+        body: 'For privacy or data questions, please open an',
+        link: { text: 'issue', href: 'https://github.com/liyupi/ai-model-world/issues' },
+      },
+    ],
   },
 };
 
@@ -558,6 +638,42 @@ const ja: PagesDict = {
       '。当サイトでの変更は2点：上流のモデル名をサイト内のモデル条目に対応づけたことと、当サイトのリーグ別に並べ替えたこと。スコア自体は換算せずそのまま引用。これらは人間の盲投票による偏好スコアで、学術評価とは比較できないため独立したランキングとしている。',
     font: '中国語ピクセルフォント：Fusion Pixel Font、OFL-1.1。',
   },
+
+  privacy: {
+    title: 'プライバシーと免責',
+    updated: '最終更新：2026-11-06',
+    sections: [
+      {
+        h: '収集するもの',
+        body: '何も収集しません。本サイトは完全な静的サイトで、アカウント、フォーム、解析・広告スクリプトは一切ありません。閲覧行動が私たちに送信されることはありません。そもそも受け取るためのアプリケーションサーバーがなく、全ページはビルド時に生成された静的ファイルです。',
+      },
+      {
+        h: 'ブラウザのローカルストレージ',
+        body: '本サイトが「記憶」するのは言語選択だけです。言語スイッチャーを使うと、amw-lang というキーがお使いの端末の localStorage に保存され、次回アクセス時にその言語で開きます。ブラウザ内にのみ保存され、リクエストと共に送信されることはなく、私たちが読むこともできません。ブラウザのサイトデータを削除すれば消去できます。',
+      },
+      {
+        h: 'ホスティング（GitHub Pages）',
+        body: '本サイトは GitHub Pages でホストされています。アクセス時に GitHub がセキュリティと運用のため、独自のプライバシーステートメントに基づき標準的なサーバーログ（IP アドレスやタイムスタンプなど）を記録します。詳しくは',
+        link: {
+          text: 'GitHub General Privacy Statement',
+          href: 'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement',
+        },
+      },
+      {
+        h: '第三者リンク',
+        body: '各ページには第三者サイト（ベンチマークの公式ページ、各社公式サイト、Bilibili、YouTube など）へのリンクが多数あります。遷移後の行動にはリンク先のプライバシーポリシーが適用され、本サイトとは関係ありません。',
+      },
+      {
+        h: 'データの正確性と免責',
+        body: 'スコアとランキングは公開の第三者ベンチマークおよびベンダー自己申告（自己申告は必ず明記）に由来し、12 時間ごとに同期されますが、遅延・転記ミス・上流の修正がありえます。順位と比較はあくまで参考情報であり、購入や選定の助言ではありません。モデル名・企業名はそれぞれの所有者の商標であり、本サイトはいかなるベンダーとも提携関係にありません。',
+      },
+      {
+        h: '連絡先',
+        body: 'プライバシーやデータに関するご質問は、GitHub リポジトリの',
+        link: { text: 'Issue', href: 'https://github.com/liyupi/ai-model-world/issues' },
+      },
+    ],
+  },
 };
 
 const ko: PagesDict = {
@@ -689,6 +805,42 @@ const ko: PagesDict = {
     arenaChanges:
       '. 이 사이트에서 변경한 것은 두 가지입니다: 상류의 모델 이름을 사이트 내 모델 항목에 매칭한 것과 이 사이트의 리그별로 재정렬한 것입니다. 점수 자체는 변환 없이 그대로 인용합니다. 이 점수는 실제 사용자의 블라인드 투표 선호도 점수로 학술 평가와 비교할 수 없으므로 별도의 리더보드로 구성했습니다.',
     font: '중국어 픽셀 폰트: Fusion Pixel Font, OFL-1.1.',
+  },
+
+  privacy: {
+    title: '개인정보 및 면책',
+    updated: '최종 업데이트: 2026-11-06',
+    sections: [
+      {
+        h: '수집하는 정보',
+        body: '아무것도 수집하지 않습니다. 이 사이트는 순수 정적 사이트로, 계정도, 폼도, 분석·광고 스크립트도 없습니다. 여러분의 열람 행위는 저희에게 전송되지 않습니다. 애초에 데이터를 받을 애플리케이션 서버가 없으며, 모든 페이지는 빌드 시점에 생성된 정적 파일입니다.',
+      },
+      {
+        h: '브라우저 로컬 스토리지',
+        body: '이 사이트가 유일하게 「기억」하는 것은 언어 선택입니다. 언어 전환기를 사용하면 amw-lang 이라는 키가 기기의 localStorage 에 저장되어 다음 방문 때 해당 언어로 바로 열립니다. 브라우저 안에만 저장되며 요청과 함께 전송되지 않고 저희가 읽을 수도 없습니다. 브라우저의 사이트 데이터를 삭제하면 지워집니다.',
+      },
+      {
+        h: '호스팅(GitHub Pages)',
+        body: '이 사이트는 GitHub Pages 에서 호스팅됩니다. 방문 시 GitHub 이 보안과 운영을 위해 자체 개인정보 처리방침에 따라 표준 서버 로그(IP 주소, 타임스탬프 등)를 기록합니다. 자세한 내용은',
+        link: {
+          text: 'GitHub General Privacy Statement',
+          href: 'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement',
+        },
+      },
+      {
+        h: '제3자 링크',
+        body: '각 페이지에는 제3자 사이트(벤치마크 홈페이지, 각 사 공식 사이트, Bilibili, YouTube 등)로 향하는 링크가 많습니다. 이동 후의 행위에는 해당 사이트의 개인정보 처리방침이 적용되며 본 사이트와는 무관합니다.',
+      },
+      {
+        h: '데이터 정확성과 면책',
+        body: '점수와 순위는 공개된 제3자 벤치마크와 벤더 자체 보고(자체 보고는 항상 표기)에서 비롯되며 12 시간마다 동기화되지만, 지연·전사 오류·상위 소스 수정이 있을 수 있습니다. 모든 순위와 비교는 참고용이며 구매나 선택에 대한 조언이 아닙니다. 모델명과 기업명은 각 소유자의 상표이며, 본 사이트는 어떤 벤더와도 제휴 관계가 없습니다.',
+      },
+      {
+        h: '문의',
+        body: '개인정보 또는 데이터 관련 문의는 GitHub 저장소의',
+        link: { text: 'Issue', href: 'https://github.com/liyupi/ai-model-world/issues' },
+      },
+    ],
   },
 };
 
