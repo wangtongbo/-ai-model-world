@@ -49,4 +49,4 @@ jobs:
           publish_branch: gh-pages
           # 全站 3000+ 页每 12 小时随数据重发一次，保留历史只会把分支撑爆
           force_orphan: true
-          commit_message: deploy: ${{ github.sha }}
+          commit_message: 'deploy: ${{ github.sha }}'
