@@ -1261,7 +1261,7 @@
       "unit": "pct"
     }
   ],
-  "generatedAt": "2026-11-16T08:33:43.013Z",
+  "generatedAt": "2026-11-16T23:01:20.283Z",
   "models": [
     {
       "benchmarks": {
@@ -9064,9 +9064,9 @@
         "totalB": 9.65
       },
       "pricing": {
-        "cachedInputPerMTok": 0.04,
+        "cachedInputPerMTok": 0.06,
         "inputPerMTok": 0.1,
-        "outputPerMTok": 0.167
+        "outputPerMTok": 0.18
       },
       "provenance": {
         "benchmarks.aime": "epoch.ai",
@@ -48925,9 +48925,9 @@
         "totalB": 25.81
       },
       "pricing": {
-        "cachedInputPerMTok": 0.05,
-        "inputPerMTok": 0.09,
-        "outputPerMTok": 0.3
+        "cachedInputPerMTok": 0.0425,
+        "inputPerMTok": 0.0765,
+        "outputPerMTok": 0.255
       },
       "provenance": {
         "benchmarks.aime": "epoch.ai",
@@ -88666,7 +88666,7 @@
         "totalB": 114.66
       },
       "pricing": {
-        "cachedInputPerMTok": 0.0714,
+        "cachedInputPerMTok": 0.066,
         "inputPerMTok": 0.15,
         "outputPerMTok": 0.6
       },
@@ -88898,7 +88898,7 @@
         "totalB": 19.11
       },
       "pricing": {
-        "cachedInputPerMTok": 0.02,
+        "cachedInputPerMTok": 0.015,
         "inputPerMTok": 0.05,
         "outputPerMTok": 0.194
       },
@@ -91197,6 +91197,79 @@
       "slug": "paddlepaddle-paddleocr-vl",
       "trainingComputeFlop": null,
       "vendorId": "paddlepaddle"
+    },
+    {
+      "benchmarks": {
+        "aime": null,
+        "arc_agi_2": null,
+        "eci": null,
+        "fiction_live": null,
+        "gpqa_diamond": null,
+        "swe_bench_pro": null,
+        "swe_bench_vendor": null,
+        "swe_bench_verified": null,
+        "webdev_arena_elo": null
+      },
+      "capabilities": {
+        "promptCaching": true,
+        "reasoning": true,
+        "structuredOutput": null,
+        "toolCall": true
+      },
+      "coding": [],
+      "contextWindow": 1048576,
+      "firstSeenAt": "2026-11-16T23:01:20.283Z",
+      "id": "particle-ai/particle-1",
+      "knowledgeCutoff": null,
+      "license": null,
+      "maxOutput": 131072,
+      "modalities": {
+        "input": [
+          "image",
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "name": "Particle-1",
+      "openWeights": false,
+      "params": {
+        "activeB": null,
+        "confidence": "estimated",
+        "sizeTier": 1,
+        "sizeTierBasis": "price",
+        "totalB": null
+      },
+      "pricing": {
+        "cachedInputPerMTok": 0.015,
+        "inputPerMTok": 0.125,
+        "outputPerMTok": 0.5
+      },
+      "provenance": {
+        "capabilities.promptCaching": "derived",
+        "capabilities.reasoning": "models.dev",
+        "capabilities.toolCall": "models.dev",
+        "contextWindow": "models.dev",
+        "maxOutput": "models.dev",
+        "modalities": "models.dev",
+        "name": "models.dev",
+        "openWeights": "models.dev",
+        "params.sizeTier": "derived",
+        "pricing.cachedInputPerMTok": "models.dev",
+        "pricing.inputPerMTok": "models.dev",
+        "pricing.outputPerMTok": "models.dev",
+        "releaseDate": "models.dev",
+        "releaseDatePrecision": "models.dev",
+        "vendorId": "derived"
+      },
+      "releaseDate": "2026-10-28",
+      "releaseDatePrecision": "day",
+      "retiredAt": null,
+      "scores": [],
+      "slug": "particle-ai-particle-1",
+      "trainingComputeFlop": null,
+      "vendorId": "particle-ai"
     },
     {
       "benchmarks": {
@@ -96003,9 +96076,9 @@
         "totalB": null
       },
       "pricing": {
-        "cachedInputPerMTok": 0.0015,
-        "inputPerMTok": 0.035,
-        "outputPerMTok": 0.1405
+        "cachedInputPerMTok": 0.003,
+        "inputPerMTok": 0.07,
+        "outputPerMTok": 0.281
       },
       "provenance": {
         "capabilities.promptCaching": "derived",
@@ -96017,9 +96090,9 @@
         "name": "models.dev",
         "openWeights": "models.dev",
         "params.sizeTier": "derived",
-        "pricing.cachedInputPerMTok": "vercel-gateway",
-        "pricing.inputPerMTok": "vercel-gateway",
-        "pricing.outputPerMTok": "vercel-gateway",
+        "pricing.cachedInputPerMTok": "models.dev",
+        "pricing.inputPerMTok": "models.dev",
+        "pricing.outputPerMTok": "models.dev",
         "releaseDate": "models.dev",
         "releaseDatePrecision": "models.dev",
         "vendorId": "derived"
@@ -106710,9 +106783,9 @@
         "totalB": null
       },
       "pricing": {
-        "cachedInputPerMTok": 0.56,
-        "inputPerMTok": 2.8,
-        "outputPerMTok": 8.8
+        "cachedInputPerMTok": 0.336,
+        "inputPerMTok": 1.68,
+        "outputPerMTok": 5.28
       },
       "provenance": {
         "capabilities.promptCaching": "derived",
@@ -106951,23 +107024,23 @@
   ],
   "sources": {
     "derived": {
-      "fetchedAt": "2026-11-16T08:33:43.013Z",
+      "fetchedAt": "2026-11-16T23:01:20.283Z",
       "note": "管线内推导的字段（规模档位、缓存能力、退役判定）",
       "ok": true
     },
     "epoch.ai": {
-      "fetchedAt": "2026-11-16T08:33:43.013Z",
+      "fetchedAt": "2026-11-16T23:01:20.283Z",
       "note": "ZIP 92 个条目；取到 7/7 个指标；编程赛制 9 个；全榜单 80 个；训练算力 343 行；去重后 424 个模型实体；合规拦截 1 个文件",
       "ok": true
     },
     "huggingface": {
-      "fetchedAt": "2026-11-16T08:33:43.013Z",
+      "fetchedAt": "2026-11-16T23:01:20.283Z",
       "note": "请求 251 个开源模型，成功 247，失败 4",
       "ok": true
     },
     "litellm": {
-      "fetchedAt": "2026-11-16T08:33:43.013Z",
-      "note": "5993 条（对话类 3928 条）；用作新模型的第三方佐证，以及 models.dev 缺项时的定价/上下文兜底",
+      "fetchedAt": "2026-11-16T23:01:20.283Z",
+      "note": "6027 条（对话类 3934 条）；用作新模型的第三方佐证，以及 models.dev 缺项时的定价/上下文兜底",
       "ok": true
     },
     "livebench": {
@@ -106976,18 +107049,18 @@
       "ok": false
     },
     "lmarena": {
-      "fetchedAt": "2026-11-16T08:33:43.013Z",
+      "fetchedAt": "2026-11-16T23:01:20.283Z",
       "note": "7/7 个分榜，共 349 条 Arena 分",
       "ok": true
     },
     "models.dev": {
-      "fetchedAt": "2026-11-16T08:33:43.013Z",
-      "note": "models.json 630 条；api.json 324 provider / 9888 条；benchmarks[] 1213 条，已拦截 AA 血缘 188 条，非编程口径跳过 635 条",
+      "fetchedAt": "2026-11-16T23:01:20.283Z",
+      "note": "models.json 631 条；api.json 324 provider / 9901 条；benchmarks[] 1213 条，已拦截 AA 血缘 188 条，非编程口径跳过 635 条",
       "ok": true
     },
     "openrouter": {
-      "fetchedAt": "2026-11-16T08:33:43.013Z",
-      "note": "468 条；已剔除 artificial_analysis 209 处（AA ToS 合规）；用于新模型发现、发布日期投票，以及 models.dev 缺项时的定价/上下文/模态兜底",
+      "fetchedAt": "2026-11-16T23:01:20.283Z",
+      "note": "470 条；已剔除 artificial_analysis 210 处（AA ToS 合规）；用于新模型发现、发布日期投票，以及 models.dev 缺项时的定价/上下文/模态兜底",
       "ok": true
     },
     "override": {
@@ -106996,8 +107069,8 @@
       "ok": true
     },
     "vercel-gateway": {
-      "fetchedAt": "2026-11-16T08:33:43.013Z",
-      "note": "509 条（language 324 条）；用于新模型发现、发布日期投票，以及 models.dev 缺项时的定价/上下文/模态兜底",
+      "fetchedAt": "2026-11-16T23:01:20.283Z",
+      "note": "513 条（language 325 条）；用于新模型发现、发布日期投票，以及 models.dev 缺项时的定价/上下文/模态兜底",
       "ok": true
     }
   },
@@ -107541,6 +107614,16 @@
       "motif": "wanderer",
       "name": "Paddlepaddle",
       "nameZh": "Paddlepaddle"
+    },
+    {
+      "accentColor": "#7c8da6",
+      "continent": "west",
+      "country": "ZZ",
+      "homepage": null,
+      "id": "particle-ai",
+      "motif": "wanderer",
+      "name": "Particle AI",
+      "nameZh": "Particle AI"
     },
     {
       "accentColor": "#7c8da6",
