@@ -1261,7 +1261,7 @@
       "unit": "pct"
     }
   ],
-  "generatedAt": "2026-11-16T23:01:20.283Z",
+  "generatedAt": "2026-11-17T09:44:18.497Z",
   "models": [
     {
       "benchmarks": {
@@ -9066,7 +9066,7 @@
       "pricing": {
         "cachedInputPerMTok": 0.06,
         "inputPerMTok": 0.1,
-        "outputPerMTok": 0.18
+        "outputPerMTok": 0.2
       },
       "provenance": {
         "benchmarks.aime": "epoch.ai",
@@ -37572,7 +37572,7 @@
       "pricing": {
         "cachedInputPerMTok": 0.006,
         "inputPerMTok": 0.22,
-        "outputPerMTok": 1.08
+        "outputPerMTok": 1
       },
       "provenance": {
         "benchmarks.aime": "epoch.ai",
@@ -48925,9 +48925,9 @@
         "totalB": 25.81
       },
       "pricing": {
-        "cachedInputPerMTok": 0.0425,
-        "inputPerMTok": 0.0765,
-        "outputPerMTok": 0.255
+        "cachedInputPerMTok": 0.05,
+        "inputPerMTok": 0.09,
+        "outputPerMTok": 0.3
       },
       "provenance": {
         "benchmarks.aime": "epoch.ai",
@@ -61278,8 +61278,8 @@
       },
       "pricing": {
         "cachedInputPerMTok": null,
-        "inputPerMTok": 0.33156,
-        "outputPerMTok": 0.44208
+        "inputPerMTok": 0.33042,
+        "outputPerMTok": 0.44056
       },
       "provenance": {
         "capabilities.promptCaching": "derived",
@@ -71172,7 +71172,7 @@
       },
       "pricing": {
         "cachedInputPerMTok": 0.06,
-        "inputPerMTok": 0.09714286,
+        "inputPerMTok": 0.0971,
         "outputPerMTok": 0.48
       },
       "provenance": {
@@ -71303,9 +71303,9 @@
         "totalB": 550
       },
       "pricing": {
-        "cachedInputPerMTok": 0.12,
-        "inputPerMTok": 0.6,
-        "outputPerMTok": 2.4
+        "cachedInputPerMTok": 0.1,
+        "inputPerMTok": 0.5,
+        "outputPerMTok": 2.2
       },
       "provenance": {
         "benchmarks.aime": "epoch.ai",
@@ -88900,7 +88900,7 @@
       "pricing": {
         "cachedInputPerMTok": 0.015,
         "inputPerMTok": 0.05,
-        "outputPerMTok": 0.194
+        "outputPerMTok": 0.19
       },
       "provenance": {
         "benchmarks.aime": "epoch.ai",
@@ -107024,23 +107024,23 @@
   ],
   "sources": {
     "derived": {
-      "fetchedAt": "2026-11-16T23:01:20.283Z",
+      "fetchedAt": "2026-11-17T09:44:18.497Z",
       "note": "管线内推导的字段（规模档位、缓存能力、退役判定）",
       "ok": true
     },
     "epoch.ai": {
-      "fetchedAt": "2026-11-16T23:01:20.283Z",
+      "fetchedAt": "2026-11-17T09:44:18.497Z",
       "note": "ZIP 92 个条目；取到 7/7 个指标；编程赛制 9 个；全榜单 80 个；训练算力 343 行；去重后 424 个模型实体；合规拦截 1 个文件",
       "ok": true
     },
     "huggingface": {
-      "fetchedAt": "2026-11-16T23:01:20.283Z",
+      "fetchedAt": "2026-11-17T09:44:18.497Z",
       "note": "请求 251 个开源模型，成功 247，失败 4",
       "ok": true
     },
     "litellm": {
-      "fetchedAt": "2026-11-16T23:01:20.283Z",
-      "note": "6027 条（对话类 3934 条）；用作新模型的第三方佐证，以及 models.dev 缺项时的定价/上下文兜底",
+      "fetchedAt": "2026-11-17T09:44:18.497Z",
+      "note": "6075 条（对话类 3981 条）；用作新模型的第三方佐证，以及 models.dev 缺项时的定价/上下文兜底",
       "ok": true
     },
     "livebench": {
@@ -107049,17 +107049,17 @@
       "ok": false
     },
     "lmarena": {
-      "fetchedAt": "2026-11-16T23:01:20.283Z",
+      "fetchedAt": "2026-11-17T09:44:18.497Z",
       "note": "7/7 个分榜，共 349 条 Arena 分",
       "ok": true
     },
     "models.dev": {
-      "fetchedAt": "2026-11-16T23:01:20.283Z",
-      "note": "models.json 631 条；api.json 324 provider / 9901 条；benchmarks[] 1213 条，已拦截 AA 血缘 188 条，非编程口径跳过 635 条",
+      "fetchedAt": "2026-11-17T09:44:18.497Z",
+      "note": "models.json 631 条；api.json 324 provider / 9925 条；benchmarks[] 1213 条，已拦截 AA 血缘 188 条，非编程口径跳过 635 条",
       "ok": true
     },
     "openrouter": {
-      "fetchedAt": "2026-11-16T23:01:20.283Z",
+      "fetchedAt": "2026-11-17T09:44:18.497Z",
       "note": "470 条；已剔除 artificial_analysis 210 处（AA ToS 合规）；用于新模型发现、发布日期投票，以及 models.dev 缺项时的定价/上下文/模态兜底",
       "ok": true
     },
@@ -107069,7 +107069,7 @@
       "ok": true
     },
     "vercel-gateway": {
-      "fetchedAt": "2026-11-16T23:01:20.283Z",
+      "fetchedAt": "2026-11-17T09:44:18.497Z",
       "note": "513 条（language 325 条）；用于新模型发现、发布日期投票，以及 models.dev 缺项时的定价/上下文/模态兜底",
       "ok": true
     }
