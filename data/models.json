@@ -1261,7 +1261,7 @@
       "unit": "pct"
     }
   ],
-  "generatedAt": "2026-11-20T21:30:50.410Z",
+  "generatedAt": "2026-11-21T08:44:51.283Z",
   "models": [
     {
       "benchmarks": {
@@ -31700,9 +31700,9 @@
         "totalB": null
       },
       "pricing": {
-        "cachedInputPerMTok": 0.11,
-        "inputPerMTok": 0.29,
-        "outputPerMTok": 1.14
+        "cachedInputPerMTok": 0.14812,
+        "inputPerMTok": 0.25,
+        "outputPerMTok": 1
       },
       "provenance": {
         "benchmarks.aime": "epoch.ai",
@@ -36063,8 +36063,8 @@
       },
       "pricing": {
         "cachedInputPerMTok": 0.028,
-        "inputPerMTok": 0.153888,
-        "outputPerMTok": 0.38472
+        "inputPerMTok": 0.15386,
+        "outputPerMTok": 0.38465
       },
       "provenance": {
         "benchmarks.aime": "epoch.ai",
@@ -37574,8 +37574,8 @@
       },
       "pricing": {
         "cachedInputPerMTok": 0.006,
-        "inputPerMTok": 0.24,
-        "outputPerMTok": 1.1
+        "inputPerMTok": 0.22,
+        "outputPerMTok": 1
       },
       "provenance": {
         "benchmarks.aime": "epoch.ai",
@@ -61794,8 +61794,8 @@
       },
       "pricing": {
         "cachedInputPerMTok": null,
-        "inputPerMTok": 0.32976,
-        "outputPerMTok": 0.43968
+        "inputPerMTok": 0.3297,
+        "outputPerMTok": 0.4396
       },
       "provenance": {
         "capabilities.promptCaching": "derived",
@@ -72120,7 +72120,7 @@
         "totalB": null
       },
       "pricing": {
-        "cachedInputPerMTok": 0.0125,
+        "cachedInputPerMTok": 0.01,
         "inputPerMTok": 0.05,
         "outputPerMTok": 0.16
       },
@@ -72272,7 +72272,7 @@
       "id": "nvidia/nemotron-3.5-super-vl",
       "knowledgeCutoff": null,
       "license": null,
-      "maxOutput": 235929,
+      "maxOutput": 943718,
       "modalities": {
         "input": [
           "image",
@@ -72295,7 +72295,7 @@
       "pricing": {
         "cachedInputPerMTok": 0.02,
         "inputPerMTok": 0.15,
-        "outputPerMTok": 0.5
+        "outputPerMTok": 0.47
       },
       "provenance": {
         "capabilities.promptCaching": "derived",
@@ -96934,9 +96934,9 @@
         "totalB": 298.79
       },
       "pricing": {
-        "cachedInputPerMTok": 0.06,
-        "inputPerMTok": 0.18,
-        "outputPerMTok": 0.6
+        "cachedInputPerMTok": 0.051,
+        "inputPerMTok": 0.17,
+        "outputPerMTok": 0.566661
       },
       "provenance": {
         "benchmarks.swe_bench_vendor": "models.dev",
@@ -97695,6 +97695,76 @@
       ],
       "slug": "thinkingmachines-inkling",
       "trainingComputeFlop": 1.1e+25,
+      "vendorId": "thinkingmachines"
+    },
+    {
+      "benchmarks": {
+        "aime": null,
+        "arc_agi_2": null,
+        "eci": null,
+        "fiction_live": null,
+        "gpqa_diamond": null,
+        "swe_bench_pro": null,
+        "swe_bench_vendor": null,
+        "swe_bench_verified": null,
+        "webdev_arena_elo": null
+      },
+      "capabilities": {
+        "promptCaching": true,
+        "reasoning": null,
+        "structuredOutput": null,
+        "toolCall": null
+      },
+      "coding": [],
+      "contextWindow": 1048576,
+      "firstSeenAt": "2026-11-21T08:44:51.283Z",
+      "id": "thinkingmachines/inkling-2-mini",
+      "knowledgeCutoff": null,
+      "license": null,
+      "maxOutput": 65536,
+      "modalities": {
+        "input": [
+          "image",
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "name": "Inkling 2 Mini",
+      "openWeights": null,
+      "params": {
+        "activeB": null,
+        "confidence": "estimated",
+        "sizeTier": 1,
+        "sizeTierBasis": "price+naming",
+        "totalB": null
+      },
+      "pricing": {
+        "cachedInputPerMTok": 0.02,
+        "inputPerMTok": 0.1,
+        "outputPerMTok": 0.4
+      },
+      "provenance": {
+        "capabilities.promptCaching": "derived",
+        "contextWindow": "openrouter",
+        "maxOutput": "openrouter",
+        "modalities": "openrouter",
+        "name": "derived",
+        "params.sizeTier": "derived",
+        "pricing.cachedInputPerMTok": "openrouter",
+        "pricing.inputPerMTok": "openrouter",
+        "pricing.outputPerMTok": "openrouter",
+        "releaseDate": "openrouter",
+        "releaseDatePrecision": "openrouter",
+        "vendorId": "derived"
+      },
+      "releaseDate": "2026-11-21",
+      "releaseDatePrecision": "day",
+      "retiredAt": null,
+      "scores": [],
+      "slug": "thinkingmachines-inkling-2-mini",
+      "trainingComputeFlop": null,
       "vendorId": "thinkingmachines"
     },
     {
@@ -108027,23 +108097,23 @@
   ],
   "sources": {
     "derived": {
-      "fetchedAt": "2026-11-20T21:30:50.410Z",
+      "fetchedAt": "2026-11-21T08:44:51.283Z",
       "note": "管线内推导的字段（规模档位、缓存能力、退役判定）",
       "ok": true
     },
     "epoch.ai": {
-      "fetchedAt": "2026-11-20T21:30:50.410Z",
+      "fetchedAt": "2026-11-21T08:44:51.283Z",
       "note": "ZIP 92 个条目；取到 7/7 个指标；编程赛制 9 个；全榜单 80 个；训练算力 345 行；去重后 428 个模型实体；合规拦截 1 个文件",
       "ok": true
     },
     "huggingface": {
-      "fetchedAt": "2026-11-20T21:30:50.410Z",
+      "fetchedAt": "2026-11-21T08:44:51.283Z",
       "note": "请求 251 个开源模型，成功 247，失败 4",
       "ok": true
     },
     "litellm": {
-      "fetchedAt": "2026-11-20T21:30:50.410Z",
-      "note": "7077 条（对话类 4859 条）；用作新模型的第三方佐证，以及 models.dev 缺项时的定价/上下文兜底",
+      "fetchedAt": "2026-11-21T08:44:51.283Z",
+      "note": "7091 条（对话类 4872 条）；用作新模型的第三方佐证，以及 models.dev 缺项时的定价/上下文兜底",
       "ok": true
     },
     "livebench": {
@@ -108052,17 +108122,17 @@
       "ok": false
     },
     "lmarena": {
-      "fetchedAt": "2026-11-20T21:30:50.410Z",
+      "fetchedAt": "2026-11-21T08:44:51.283Z",
       "note": "7/7 个分榜，共 353 条 Arena 分",
       "ok": true
     },
     "models.dev": {
-      "fetchedAt": "2026-11-20T21:30:50.410Z",
-      "note": "models.json 636 条；api.json 324 provider / 10024 条；benchmarks[] 1215 条，已拦截 AA 血缘 190 条，非编程口径跳过 635 条",
+      "fetchedAt": "2026-11-21T08:44:51.283Z",
+      "note": "models.json 636 条；api.json 324 provider / 10019 条；benchmarks[] 1215 条，已拦截 AA 血缘 190 条，非编程口径跳过 635 条",
       "ok": true
     },
     "openrouter": {
-      "fetchedAt": "2026-11-20T21:30:50.410Z",
+      "fetchedAt": "2026-11-21T08:44:51.283Z",
       "note": "476 条；已剔除 artificial_analysis 220 处（AA ToS 合规）；用于新模型发现、发布日期投票，以及 models.dev 缺项时的定价/上下文/模态兜底",
       "ok": true
     },
@@ -108072,8 +108142,8 @@
       "ok": true
     },
     "vercel-gateway": {
-      "fetchedAt": "2026-11-20T21:30:50.410Z",
-      "note": "518 条（language 322 条）；用于新模型发现、发布日期投票，以及 models.dev 缺项时的定价/上下文/模态兜底",
+      "fetchedAt": "2026-11-21T08:44:51.283Z",
+      "note": "517 条（language 322 条）；用于新模型发现、发布日期投票，以及 models.dev 缺项时的定价/上下文/模态兜底",
       "ok": true
     }
   },
